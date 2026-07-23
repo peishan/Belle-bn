@@ -548,6 +548,10 @@
                 <div class="stat-label">🏆 Total XP</div>
                 <div class="stat-value" id="totalXP">0</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-label">💵 Est. Profit</div>
+                <div class="stat-value" id="totalProfit">$0</div>
+            </div>
             <div class="xp-bar-container">
                 <span class="xp-label">🌟 Level Progress</span>
                 <div class="xp-track">
@@ -654,6 +658,16 @@
                     <input type="number" class="form-input" id="prodXP" placeholder="10" min="1">
                 </div>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Cost Price ($)</label>
+                    <input type="number" class="form-input" id="prodCost" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Shipping / Unit ($)</label>
+                    <input type="number" class="form-input" id="prodShipping" placeholder="0.00" step="0.01" min="0">
+                </div>
+            </div>
             <div class="modal-actions">
                 <button class="action-btn btn-cancel" id="cancelProduct">Cancel</button>
                 <button class="action-btn primary" id="saveProduct">Save Product</button>
@@ -708,6 +722,10 @@
                 <label class="form-label">Cost per Unit ($)</label>
                 <input type="number" class="form-input" id="stockCost" placeholder="Optional" step="0.01" min="0">
             </div>
+            <div class="form-group" id="stockShippingGroup">
+                <label class="form-label">Shipping / Unit ($)</label>
+                <input type="number" class="form-input" id="stockShipping" placeholder="Optional" step="0.01" min="0">
+            </div>
             <div class="modal-actions">
                 <button class="action-btn btn-cancel" id="cancelStock">Cancel</button>
                 <button class="action-btn primary" id="confirmStock">Confirm</button>
@@ -726,6 +744,143 @@
 
     <script>
     (function() {
+        // ===================== REAL SALES SEED (67. GPS sheets, May-Jul 2026) =====================
+        const SEED_PRODUCTS = [
+            {id:"prod_6714", name:"Ximonth Massage Gel", category:"Body", icon:"\ud83e\uddf4", price:8, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6751", name:"Bai Yao Lang 20G", category:"Herbal", icon:"\ud83c\udf3f", price:4, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6741", name:"West Month Tumeric Cream", category:"Postnatal", icon:"\ud83e\udeb7", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6725", name:"Huatuo Bai Fu Ling (15G)", category:"Herbal", icon:"\ud83c\udf3f", price:3, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6766", name:"Bai Fu Ling 22G Pink", category:"Herbal", icon:"\ud83c\udf3f", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6742", name:"West&Month Tumeric Serum", category:"Postnatal", icon:"\ud83e\udeb7", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6736", name:"Ouhoe NMN Hair Roller", category:"Hair", icon:"\ud83d\udc87", price:6, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6713", name:"Eelhoe Rosemary Essential Oil", category:"Hair", icon:"\ud83c\udf3f", price:6, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6797", name:"Tumeric Kojic Soap", category:"Face", icon:"\ud83e\uddfc", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6744", name:"G2G Centella Moisturizer", category:"Face", icon:"\ud83e\uddf4", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6798", name:"Jaysuing Tumeric Cleanser", category:"Face", icon:"\ud83e\uddfc", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6718", name:"G2G Deep Pore Facial Wash Black", category:"Face", icon:"\ud83e\uddfc", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6799", name:"Tumbler", category:"Merch", icon:"\ud83e\udea3", price:10, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6770", name:"G2G Glycolic Acid Facial Wash", category:"Face", icon:"\ud83e\uddfc", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6760", name:"G2G Micellar Water", category:"Face", icon:"\ud83d\udca7", price:10, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6765", name:"Tumeric Cleanser", category:"Face", icon:"\ud83e\uddfc", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6796", name:"G2G Cleansing Oil", category:"Face", icon:"\ud83e\uddf4", price:8, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6720", name:"G2G Glycolic Peeling Gel", category:"Face", icon:"\ud83e\uddfc", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6800", name:"G2G PDRN Serum", category:"Face", icon:"\ud83d\udc89", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6740", name:"G2G Niacinamide Facial Wash (Pink)", category:"Face", icon:"\ud83e\uddfc", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6801", name:"Tumeric Toner", category:"Face", icon:"\ud83d\udca7", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6802", name:"Withyou Cream", category:"Face", icon:"\ud83e\udeb7", price:4, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6803", name:"Sunscreen WAWA", category:"Face", icon:"\u2600\ufe0f", price:13, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6804", name:"West Month Serum", category:"Postnatal", icon:"\ud83d\udc89", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6790", name:"G2G Setting Spray", category:"Makeup", icon:"\ud83d\udc84", price:10, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6731", name:"Panda's Beauty Astralagus Cream", category:"Herbal", icon:"\ud83e\udeb7", price:4, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_6805", name:"PDRN Moisturizer", category:"Face", icon:"\ud83d\udc89", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
+            {id:"prod_custom", name:"Custom / Bundle Order", category:"Other", icon:"\ud83c\udf81", price:0, stock:9999, lowStock:0, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()}
+        ];
+
+        // date field kept as plain YYYY-MM-DD (real sale date); cancelled:true for the one GAGAL (failed) entry
+        const SEED_SALES_RAW = [
+            // ---- MAY 2026 ----
+            {date:"2026-05-02",sku:"prod_6714",qty:1,price:8,customer:"",notes:""},
+            {date:"2026-05-02",sku:"prod_6751",qty:2,price:4,customer:"",notes:""},
+            {date:"2026-05-02",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-03",sku:"prod_custom",qty:2,price:5,customer:"Aufiya",notes:""},
+            {date:"2026-05-03",sku:"prod_6725",qty:3,price:3,customer:"",notes:""},
+            {date:"2026-05-03",sku:"prod_6766",qty:2,price:5,customer:"",notes:""},
+            {date:"2026-05-03",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-03",sku:"prod_6742",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-03",sku:"prod_6736",qty:1,price:6,customer:"",notes:""},
+            {date:"2026-05-04",sku:"prod_6713",qty:1,price:6,customer:"",notes:""},
+            {date:"2026-05-04",sku:"prod_6725",qty:2,price:3,customer:"",notes:""},
+            {date:"2026-05-04",sku:"prod_6797",qty:3,price:5,customer:"",notes:""},
+            {date:"2026-05-04",sku:"prod_6744",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-05-05",sku:"prod_6798",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-05",sku:"prod_6742",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-05",sku:"prod_6718",qty:2,price:8,customer:"",notes:""},
+            {date:"2026-05-05",sku:"prod_6799",qty:2,price:10,customer:"",notes:""},
+            {date:"2026-05-05",sku:"prod_6751",qty:1,price:4,customer:"",notes:""},
+            {date:"2026-05-09",sku:"prod_custom",qty:1,price:24,customer:"Hasliza",notes:""},
+            {date:"2026-05-09",sku:"prod_6751",qty:4,price:4,customer:"",notes:""},
+            {date:"2026-05-10",sku:"prod_6770",qty:1,price:8,customer:"",notes:""},
+            {date:"2026-05-11",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
+            {date:"2026-05-14",sku:"prod_6760",qty:1,price:10,customer:"",notes:""},
+            {date:"2026-05-17",sku:"prod_6736",qty:1,price:6,customer:"",notes:""},
+            {date:"2026-05-18",sku:"prod_6751",qty:2,price:4,customer:"",notes:"GAGAL",cancelled:true},
+            {date:"2026-05-19",sku:"prod_6765",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-21",sku:"prod_6718",qty:1,price:8,customer:"",notes:""},
+            {date:"2026-05-21",sku:"prod_6796",qty:1,price:8,customer:"",notes:""},
+            {date:"2026-05-23",sku:"prod_6797",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-25",sku:"prod_custom",qty:2,price:5,customer:"Fizah",notes:""},
+            {date:"2026-05-25",sku:"prod_6797",qty:2,price:5,customer:"",notes:""},
+            {date:"2026-05-26",sku:"prod_6797",qty:1,price:5,customer:"Siti",notes:""},
+            {date:"2026-05-26",sku:"prod_6714",qty:1,price:8,customer:"",notes:""},
+            {date:"2026-05-26",sku:"prod_6797",qty:2,price:5,customer:"Fizah",notes:""},
+            {date:"2026-05-26",sku:"prod_6751",qty:2,price:4,customer:"",notes:""},
+            {date:"2026-05-26",sku:"prod_6720",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-05-27",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-27",sku:"prod_6797",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-05-27",sku:"prod_6797",qty:2,price:5,customer:"KR",notes:""},
+            {date:"2026-05-27",sku:"prod_6714",qty:2,price:8,customer:"",notes:""},
+            {date:"2026-05-30",sku:"prod_6797",qty:4,price:5,customer:"",notes:""},
+            {date:"2026-05-30",sku:"prod_6751",qty:2,price:4,customer:"",notes:""},
+            {date:"2026-05-30",sku:"prod_6800",qty:1,price:7,customer:"",notes:""},
+            // ---- JUNE 2026 ----
+            {date:"2026-06-01",sku:"prod_6740",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-06-02",sku:"prod_6718",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-06-02",sku:"prod_6740",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-06-02",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-06-02",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
+            {date:"2026-06-03",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-06-03",sku:"prod_6751",qty:1,price:4,customer:"",notes:""},
+            {date:"2026-06-07",sku:"prod_6751",qty:1,price:4,customer:"",notes:""},
+            {date:"2026-06-07",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
+            {date:"2026-06-09",sku:"prod_6801",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-06-11",sku:"prod_6718",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-06-18",sku:"prod_6751",qty:1,price:4,customer:"",notes:""},
+            {date:"2026-06-18",sku:"prod_6802",qty:1,price:4,customer:"",notes:""},
+            {date:"2026-06-20",sku:"prod_6766",qty:2,price:5,customer:"",notes:""},
+            {date:"2026-06-21",sku:"prod_6803",qty:1,price:13,customer:"",notes:""},
+            {date:"2026-06-21",sku:"prod_6797",qty:1,price:5,customer:"Izah",notes:""},
+            {date:"2026-06-21",sku:"prod_6797",qty:2,price:5,customer:"",notes:""},
+            {date:"2026-06-21",sku:"prod_6804",qty:1,price:5,customer:"Siti Fatimah",notes:""},
+            {date:"2026-06-21",sku:"prod_6801",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-06-21",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-06-24",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
+            {date:"2026-06-25",sku:"prod_6797",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-06-25",sku:"prod_6797",qty:1,price:5,customer:"Suzie",notes:""},
+            {date:"2026-06-27",sku:"prod_6790",qty:1,price:10,customer:"",notes:""},
+            {date:"2026-06-27",sku:"prod_6797",qty:1,price:5,customer:"",notes:""},
+            // ---- JULY 2026 (partial month) ----
+            {date:"2026-07-02",sku:"prod_6770",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-07-04",sku:"prod_6751",qty:2,price:4,customer:"",notes:""},
+            {date:"2026-07-05",sku:"prod_6751",qty:4,price:4,customer:"",notes:""},
+            {date:"2026-07-07",sku:"prod_6731",qty:1,price:4,customer:"",notes:""},
+            {date:"2026-07-07",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
+            {date:"2026-07-09",sku:"prod_6725",qty:2,price:3,customer:"",notes:""},
+            {date:"2026-07-11",sku:"prod_6797",qty:2,price:5,customer:"",notes:""},
+            {date:"2026-07-11",sku:"prod_6740",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-07-11",sku:"prod_6766",qty:1,price:5,customer:"",notes:""},
+            {date:"2026-07-13",sku:"prod_6742",qty:2,price:5,customer:"",notes:""},
+            {date:"2026-07-14",sku:"prod_6803",qty:1,price:13,customer:"",notes:""},
+            {date:"2026-07-14",sku:"prod_6805",qty:2,price:7,customer:"",notes:""},
+            {date:"2026-07-14",sku:"prod_6800",qty:1,price:7,customer:"",notes:""},
+            {date:"2026-07-14",sku:"prod_6751",qty:1,price:4,customer:"",notes:""}
+        ];
+
+        function buildSeedSales(){
+            const nameOf = id => (SEED_PRODUCTS.find(p=>p.id===id)||{}).name || id;
+            return SEED_SALES_RAW.map((s,i)=>({
+                id: "seed_sale_" + (i+1),
+                productId: s.sku,
+                productName: nameOf(s.sku),
+                qty: s.qty,
+                price: s.price,
+                total: +(s.qty*s.price).toFixed(2),
+                customer: s.customer || "",
+                notes: s.notes || "",
+                date: new Date(s.date + "T12:00:00").toISOString(),
+                cancelled: !!s.cancelled
+            }));
+        }
+
         // ===================== STATE =====================
         let products = JSON.parse(localStorage.getItem('bellebn_products')) || [];
         let sales = JSON.parse(localStorage.getItem('bellebn_sales')) || [];
@@ -738,14 +893,38 @@
 
         const XP_PER_LEVEL = 200;
         const ACHIEVEMENTS = [
-            { id: 'first_sale', name: 'First Bloom', desc: 'Made your first sale', xp: 50, check: () => sales.length >= 1 },
-            { id: 'ten_sales', name: 'Bouquet', desc: '10 sales completed', xp: 100, check: () => sales.length >= 10 },
-            { id: 'fifty_sales', name: 'Garden Keeper', desc: '50 sales completed', xp: 300, check: () => sales.length >= 50 },
-            { id: 'hundred_sales', name: 'Floral Empire', desc: '100 sales completed', xp: 500, check: () => sales.length >= 100 },
+            { id: 'first_sale', name: 'First Bloom', desc: 'Made your first sale', xp: 50, check: () => activeSales().length >= 1 },
+            { id: 'ten_sales', name: 'Bouquet', desc: '10 sales completed', xp: 100, check: () => activeSales().length >= 10 },
+            { id: 'fifty_sales', name: 'Garden Keeper', desc: '50 sales completed', xp: 300, check: () => activeSales().length >= 50 },
+            { id: 'hundred_sales', name: 'Floral Empire', desc: '100 sales completed', xp: 500, check: () => activeSales().length >= 100 },
             { id: 'low_stock_master', name: 'Stock Whisperer', desc: 'Restocked a low item', xp: 30, check: () => false },
             { id: 'price_tracker', name: 'Market Analyst', desc: 'Tracked prices for 30 days', xp: 100, check: () => priceHistory.length >= 30 }
         ];
         let unlockedAchievements = JSON.parse(localStorage.getItem('bellebn_achievements')) || [];
+
+        function activeSales(){ return sales.filter(s => !s.cancelled); }
+        function fmtMargin(p){
+            const margin = p.price - (p.cost||0) - (p.shipping||0);
+            const pct = p.price > 0 ? Math.round((margin/p.price)*100) : 0;
+            return (margin>=0?'+$':'-$') + Math.abs(margin).toFixed(2) + ' margin (' + pct + '%)';
+        }
+
+        // Seed real historical data only on first-ever load (won't touch data you've already entered)
+        function seedIfEmpty(){
+            if (products && products.length) return;
+            products = SEED_PRODUCTS.map(p => ({...p}));
+            sales = buildSeedSales();
+            xp = activeSales().reduce((sum, s) => {
+                const p = products.find(x => x.id === s.productId);
+                return sum + ((p && p.xp) || 10) * s.qty;
+            }, 0);
+            level = Math.floor(xp / XP_PER_LEVEL) + 1;
+            localStorage.setItem('bellebn_products', JSON.stringify(products));
+            localStorage.setItem('bellebn_sales', JSON.stringify(sales));
+            localStorage.setItem('bellebn_xp', xp);
+            localStorage.setItem('bellebn_level', level);
+        }
+        seedIfEmpty();
 
         // ===================== INIT =====================
         function init() {
@@ -826,7 +1005,7 @@
                         </div>
                         <div>
                             <div class="product-price">$${parseFloat(p.price).toFixed(2)}</div>
-                            <div class="product-xp">+${p.xp || 10} XP</div>
+                            ${(p.cost || p.shipping) ? `<div class="product-xp" style="color:${(p.price-p.cost-p.shipping)>=0?'var(--success)':'var(--danger)'}">${fmtMargin(p)}</div>` : `<div class="product-xp">+${p.xp || 10} XP</div>`}
                         </div>
                     </div>
                 `;
@@ -843,10 +1022,16 @@
         }
 
         function updateStats() {
-            const totalStock = products.reduce((s, p) => s + (parseInt(p.stock) || 0), 0);
-            const totalRev = sales.reduce((s, sale) => s + (parseFloat(sale.total) || 0), 0);
+            const totalStock = products.reduce((s, p) => p.id === 'prod_custom' ? s : s + (parseInt(p.stock) || 0), 0);
+            const totalRev = activeSales().reduce((s, sale) => s + (parseFloat(sale.total) || 0), 0);
+            const totalProfit = activeSales().reduce((s, sale) => {
+                const p = products.find(x => x.id === sale.productId);
+                const unitCost = p ? (parseFloat(p.cost) || 0) + (parseFloat(p.shipping) || 0) : 0;
+                return s + (sale.price - unitCost) * sale.qty;
+            }, 0);
             document.getElementById('totalStock').textContent = totalStock;
             document.getElementById('totalRevenue').textContent = '$' + totalRev.toFixed(2);
+            document.getElementById('totalProfit').textContent = '$' + totalProfit.toFixed(2);
             document.getElementById('salesToday').textContent = salesToday;
             document.getElementById('salesDelta').textContent = salesToday;
             document.getElementById('totalXP').textContent = xp;
@@ -876,8 +1061,9 @@
 
         // ===================== PRICE TRACKER =====================
         function updatePriceTracker() {
-            if (products.length === 0) return;
-            const avgPrice = products.reduce((s, p) => s + parseFloat(p.price || 0), 0) / products.length;
+            const priced = products.filter(p => p.id !== 'prod_custom');
+            if (priced.length === 0) return;
+            const avgPrice = priced.reduce((s, p) => s + parseFloat(p.price || 0), 0) / priced.length;
             
             // Record price history
             const today = new Date().toISOString().split('T')[0];
@@ -957,6 +1143,8 @@
             document.getElementById('prodStock').value = product ? product.stock : '';
             document.getElementById('prodLowStock').value = product ? (product.lowStock || 3) : '3';
             document.getElementById('prodXP').value = product ? (product.xp || 10) : '10';
+            document.getElementById('prodCost').value = product ? (product.cost || '') : '';
+            document.getElementById('prodShipping').value = product ? (product.shipping || '') : '';
             document.getElementById('productModal').classList.add('active');
         }
 
@@ -978,6 +1166,8 @@
                 stock: parseInt(document.getElementById('prodStock').value) || 0,
                 lowStock: parseInt(document.getElementById('prodLowStock').value) || 3,
                 xp: parseInt(document.getElementById('prodXP').value) || 10,
+                cost: parseFloat(document.getElementById('prodCost').value) || 0,
+                shipping: parseFloat(document.getElementById('prodShipping').value) || 0,
                 createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString()
             };
             
@@ -1064,6 +1254,7 @@
             if (products.length === 0) { showToast('❌ Add products first!'); return; }
             document.getElementById('stockModalTitle').textContent = mode === 'in' ? '📥 Stock In' : '📤 Stock Out';
             document.getElementById('stockCostGroup').style.display = mode === 'in' ? 'block' : 'none';
+            document.getElementById('stockShippingGroup').style.display = mode === 'in' ? 'block' : 'none';
             populateProductSelect('stockProduct');
             document.getElementById('stockQty').value = 1;
             document.getElementById('stockCost').value = '';
@@ -1080,6 +1271,10 @@
             
             if (stockMode === 'in') {
                 product.stock += qty;
+                const unitCost = document.getElementById('stockCost').value;
+                const unitShipping = document.getElementById('stockShipping').value;
+                if (unitCost !== '') product.cost = parseFloat(unitCost) || 0;
+                if (unitShipping !== '') product.shipping = parseFloat(unitShipping) || 0;
                 showToast(`📥 Stocked ${qty} ${product.name}`);
                 addXP(5);
                 if (product.stock - qty <= (product.lowStock || 3)) {
@@ -1094,6 +1289,7 @@
             localStorage.setItem('bellebn_products', JSON.stringify(products));
             renderProducts(document.getElementById('searchBox').value);
             updateStats();
+            updatePriceTracker();
         }
 
         // ===================== GITHUB GIST EXPORT =====================
@@ -1152,7 +1348,7 @@
         }
 
         function generateMarkdownReport() {
-            const totalRev = sales.reduce((s, sale) => s + sale.total, 0);
+            const totalRev = activeSales().reduce((s, sale) => s + sale.total, 0);
             return `# 🌸 Belle BN Sales Report
 **Generated:** ${new Date().toLocaleString()}
 
