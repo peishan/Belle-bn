@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belle BN — Inventory & Sales Tracker</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#DDA0DD">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌸%3C/text%3E%3C/svg%3E">
+
+    <style>
+        :root {
+            --sakura: #FFB6C1;
+            --sakura-deep: #FF69B4;
+            --lavender: #DDA0DD;
+            --lavender-deep: #BA55D3;
+            --cream: #FFF5FA;
+            --text: #4A3A5A;
+            --text-muted: #8B7B8B;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --card-border: #E6D5E8;
+            --bg-gradient-start: #FFF0F5;
+            --bg-gradient-mid: #F8F0FF;
+            --bg-gradient-end: #F0E6FF;
+            --success: #4CAF50;
+            --danger: #E53935;
+            --warning: #FF9800;
+        }
+
+        [data-theme="dark"] {
+            --sakura: #FF69B4;
+            --sakura-deep: #FF1493;
+            --lavender: #BA55D3;
+            --lavender-deep: #9932CC;
+            --cream: #2D1B2E;
+            --text: #E8D5E8;
+            --text-muted: #A890A8;
+            --card-bg: rgba(45, 27, 46, 0.9);
+            --card-border: #4A3A5A;
+            --bg-gradient-start: #1A0F2E;
+            --bg-gradient-mid: #2D1B2E;
+            --bg-gradient-end: #0F0A1A;
+            --success: #81C784;
+            --danger: #EF5350;
+            --warning: #FFB74D;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-mid), var(--bg-gradient-end));
+            min-height: 100vh;
+            color: var(--text);
+            transition: all 0.4s ease;
+            overflow-x: hidden;
+        }
+
+        /* Floating Sakura Petals */
+        .petal {
+            position: fixed;
+            pointer-events: none;
+            opacity: 0.4;
+            animation: fall linear infinite;
+            z-index: 0;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.4; }
+            90% { opacity: 0.4; }
+            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
+
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(90deg, var(--sakura), var(--lavender));
+            border-radius: 16px;
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(221, 160, 221, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: shimmer 6s ease-in-out infinite;
+        }
+        @keyframes shimmer {
+            0%, 100% { transform: translate(-30%, -30%) rotate(0deg); }
+            50% { transform: translate(10%, 10%) rotate(180deg); }
+        }
+        .header h1 {
+            font-size: 1.6rem;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: relative;
+        }
+        .header-sub { font-size: 0.75rem; opacity: 0.9; font-weight: 400; }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        .level-badge {
+            background: linear-gradient(135deg, var(--sakura-deep), var(--lavender-deep));
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .theme-toggle {
+            width: 56px;
+            height: 30px;
+            background: rgba(255,255,255,0.3);
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 15px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .theme-toggle::after {
+            content: '☀';
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: #FFD700;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        [data-theme="dark"] .theme-toggle::after {
+            content: '🌙';
+            left: 29px;
+            background: #C0C0FF;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 14px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(221,160,221,0.2); }
+        .stat-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+        .stat-delta { font-size: 0.7rem; color: var(--success); font-weight: 600; }
+
+        .xp-bar-container {
+            grid-column: span 4;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .xp-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+        .xp-track {
+            flex: 1;
+            height: 10px;
+            background: var(--cream);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+        .xp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--sakura), var(--lavender));
+            border-radius: 5px;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+        .xp-fill::after {
+            content: '';
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 20px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+            animation: xpShine 2s ease-in-out infinite;
+        }
+        @keyframes xpShine {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        .xp-text { font-size: 0.75rem; font-weight: 700; color: var(--text); min-width: 40px; text-align: right; }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 16px;
+        }
+        @media (max-width: 768px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+            .xp-bar-container { grid-column: span 2; }
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 18px;
+            backdrop-filter: blur(10px);
+        }
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Search */
+        .search-box {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1.5px solid var(--lavender);
+            border-radius: 24px;
+            background: var(--cream);
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+            margin-bottom: 14px;
+        }
+        .search-box:focus { border-color: var(--sakura-deep); box-shadow: 0 0 0 3px rgba(255,182,193,0.2); }
+        .search-box::placeholder { color: var(--text-muted); }
+
+        /* Product List */
+        .product-list { max-height: 420px; overflow-y: auto; }
+        .product-list::-webkit-scrollbar { width: 6px; }
+        .product-list::-webkit-scrollbar-track { background: transparent; }
+        .product-list::-webkit-scrollbar-thumb { background: var(--lavender); border-radius: 3px; }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--cream);
+            border: 1px solid var(--card-border);
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .product-item:hover { transform: translateX(4px); border-color: var(--lavender); }
+        .product-item.low-stock { border-color: var(--danger); background: linear-gradient(90deg, rgba(229,57,53,0.05), var(--cream)); }
+        .product-item.low-stock::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: var(--danger);
+            border-radius: 12px 0 0 12px;
+        }
+
+        .product-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+        .product-info { flex: 1; min-width: 0; }
+        .product-name { font-weight: 600; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+        .product-meta .low { color: var(--danger); font-weight: 600; }
+        .product-price { font-weight: 700; font-size: 0.95rem; color: var(--text); text-align: right; }
+        .product-xp {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: rgba(76,175,80,0.12);
+            color: var(--success);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .add-product-btn {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--lavender);
+            border-radius: 12px;
+            background: transparent;
+            color: var(--lavender-deep);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .add-product-btn:hover { background: rgba(221,160,221,0.1); border-color: var(--sakura-deep); }
+
+        /* Quick Actions */
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--sakura), var(--lavender));
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(221,160,221,0.3);
+        }
+        .action-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(221,160,221,0.4); }
+        .action-btn.secondary {
+            background: var(--cream);
+            color: var(--text);
+            border: 1px solid var(--card-border);
+        }
+        .action-btn.secondary:hover { background: var(--card-bg); border-color: var(--lavender); }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        /* Price Tracker Chart */
+        .chart-container {
+            height: 140px;
+            position: relative;
+            margin: 10px 0;
+        }
+        .chart-svg { width: 100%; height: 100%; }
+        .chart-line { fill: none; stroke: url(#chartGrad); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+        .chart-area { fill: url(#chartArea); opacity: 0.3; }
+        .chart-dot { fill: var(--sakura-deep); stroke: #fff; stroke-width: 2; }
+        .chart-labels { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-top: 4px; }
+        .price-current { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+        .price-change { font-size: 0.8rem; color: var(--success); font-weight: 600; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 16px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-title { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--card-border);
+            border-radius: 10px;
+            background: var(--cream);
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .form-input:focus { border-color: var(--lavender); box-shadow: 0 0 0 3px rgba(221,160,221,0.15); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+        .modal-actions .action-btn { margin: 0; }
+        .btn-cancel { background: var(--cream); color: var(--text-muted); border: 1px solid var(--card-border); }
+
+        /* Achievement Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            background: linear-gradient(135deg, var(--sakura-deep), var(--lavender-deep));
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 8px 24px rgba(186,85,211,0.4);
+            z-index: 200;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* PWA Install Banner */
+        .pwa-banner {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--card-bg);
+            border-top: 1px solid var(--card-border);
+            padding: 12px 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 150;
+            backdrop-filter: blur(10px);
+        }
+        .pwa-banner.show { display: flex; }
+        .pwa-banner-text { font-size: 0.85rem; color: var(--text); }
+        .pwa-banner-btn {
+            background: linear-gradient(135deg, var(--sakura), var(--lavender));
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* GitHub Gist Section */
+        .gist-section {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--cream);
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+        .gist-section p { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
+        .gist-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        /* Animations */
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .pop { animation: pop 0.3s ease; }
+
+        /* Scrollbar for modal */
+        .modal::-webkit-scrollbar { width: 6px; }
+        .modal::-webkit-scrollbar-thumb { background: var(--lavender); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <!-- Floating Petals -->
+    <div id="petals"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div>
+                <h1>🌸 Belle BN <span class="header-sub">Inventory & Sales Tracker</span></h1>
+            </div>
+            <div class="header-actions">
+                <div class="level-badge" id="levelBadge">LV.1</div>
+                <div class="theme-toggle" id="themeToggle" title="Toggle light/dark mode"></div>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-label">📦 Total Stock</div>
+                <div class="stat-value" id="totalStock">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">💰 Revenue</div>
+                <div class="stat-value" id="totalRevenue">$0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">📈 Sales Today</div>
+                <div class="stat-value" id="salesToday">0</div>
+                <div class="stat-delta">+<span id="salesDelta">0</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">🏆 Total XP</div>
+                <div class="stat-value" id="totalXP">0</div>
+            </div>
+            <div class="xp-bar-container">
+                <span class="xp-label">🌟 Level Progress</span>
+                <div class="xp-track">
+                    <div class="xp-fill" id="xpFill" style="width: 0%"></div>
+                </div>
+                <span class="xp-text" id="xpText">0%</span>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left: Product Inventory -->
+            <div class="panel">
+                <div class="panel-title">📋 Product Inventory</div>
+                <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search products...">
+                <div class="product-list" id="productList"></div>
+                <button class="add-product-btn" id="addProductBtn">+ Add New Product</button>
+            </div>
+
+            <!-- Right: Actions & Tracker -->
+            <div>
+                <div class="panel" style="margin-bottom: 16px;">
+                    <div class="panel-title">⚡ Quick Actions</div>
+                    <button class="action-btn primary" id="recordSaleBtn">🛒 Record Sale</button>
+                    <div class="action-grid">
+                        <button class="action-btn secondary" id="stockInBtn">📥 Stock In</button>
+                        <button class="action-btn secondary" id="stockOutBtn">📤 Stock Out</button>
+                    </div>
+                    <button class="action-btn secondary" id="exportGistBtn">📊 Export to Gist</button>
+                    <div class="gist-section" id="gistSection" style="display:none;">
+                        <p>Paste your GitHub Personal Access Token (with gist scope):</p>
+                        <input type="password" class="gist-input" id="gistToken" placeholder="ghp_xxxxxxxxxxxx">
+                        <button class="action-btn primary" id="doExportGist" style="font-size:0.8rem;padding:8px;">📤 Upload to Gist</button>
+                        <p id="gistStatus" style="margin-top:6px;font-size:0.7rem;"></p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">📈 Price Tracker</div>
+                    <div style="margin-bottom:8px;">
+                        <div class="price-current" id="avgPrice">$0.00</div>
+                        <div class="price-change" id="priceChange">▲ +$0.00 from last month</div>
+                    </div>
+                    <div class="chart-container">
+                        <svg class="chart-svg" viewBox="0 0 240 100" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="chartGrad" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stop-color="#FFB6C1"/>
+                                    <stop offset="100%" stop-color="#DDA0DD"/>
+                                </linearGradient>
+                                <linearGradient id="chartArea" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#FFB6C1" stop-opacity="0.4"/>
+                                    <stop offset="100%" stop-color="#DDA0DD" stop-opacity="0"/>
+                                </linearGradient>
+                            </defs>
+                            <path id="chartAreaPath" class="chart-area" d=""/>
+                            <path id="chartLinePath" class="chart-line" d=""/>
+                            <circle id="chartDot" class="chart-dot" cx="0" cy="0" r="4"/>
+                        </svg>
+                    </div>
+                    <div class="chart-labels">
+                        <span>Jan</span><span>Mar</span><span>May</span><span>Jul</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="productModal">
+        <div class="modal">
+            <div class="modal-title" id="productModalTitle">🧴 Add Product</div>
+            <div class="form-group">
+                <label class="form-label">Product Name</label>
+                <input type="text" class="form-input" id="prodName" placeholder="e.g. Bai Fu Ling 15G">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <input type="text" class="form-input" id="prodCategory" placeholder="Eczema Care">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Icon (emoji)</label>
+                    <input type="text" class="form-input" id="prodIcon" placeholder="🧴" maxlength="2">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Price ($)</label>
+                    <input type="number" class="form-input" id="prodPrice" placeholder="5.00" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stock Qty</label>
+                    <input type="number" class="form-input" id="prodStock" placeholder="10" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Low Stock Alert</label>
+                    <input type="number" class="form-input" id="prodLowStock" placeholder="3" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">XP per Sale</label>
+                    <input type="number" class="form-input" id="prodXP" placeholder="10" min="1">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="action-btn btn-cancel" id="cancelProduct">Cancel</button>
+                <button class="action-btn primary" id="saveProduct">Save Product</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="saleModal">
+        <div class="modal">
+            <div class="modal-title">🛒 Record Sale</div>
+            <div class="form-group">
+                <label class="form-label">Select Product</label>
+                <select class="form-input" id="saleProduct" style="appearance:auto;"></select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Quantity Sold</label>
+                    <input type="number" class="form-input" id="saleQty" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sale Price ($)</label>
+                    <input type="number" class="form-input" id="salePrice" step="0.01" min="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Customer (optional)</label>
+                <input type="text" class="form-input" id="saleCustomer" placeholder="Customer name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <input type="text" class="form-input" id="saleNotes" placeholder="Any notes...">
+            </div>
+            <div class="modal-actions">
+                <button class="action-btn btn-cancel" id="cancelSale">Cancel</button>
+                <button class="action-btn primary" id="confirmSale">Confirm Sale</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="stockModal">
+        <div class="modal">
+            <div class="modal-title" id="stockModalTitle">📥 Stock In</div>
+            <div class="form-group">
+                <label class="form-label">Select Product</label>
+                <select class="form-input" id="stockProduct" style="appearance:auto;"></select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Quantity</label>
+                <input type="number" class="form-input" id="stockQty" value="1" min="1">
+            </div>
+            <div class="form-group" id="stockCostGroup">
+                <label class="form-label">Cost per Unit ($)</label>
+                <input type="number" class="form-input" id="stockCost" placeholder="Optional" step="0.01" min="0">
+            </div>
+            <div class="modal-actions">
+                <button class="action-btn btn-cancel" id="cancelStock">Cancel</button>
+                <button class="action-btn primary" id="confirmStock">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- PWA Install Banner -->
+    <div class="pwa-banner" id="pwaBanner">
+        <span class="pwa-banner-text">📲 Install Belle BN for offline access!</span>
+        <button class="pwa-banner-btn" id="installBtn">Install</button>
+    </div>
+
+    <script>
+    (function() {
+        // ===================== STATE =====================
+        let products = JSON.parse(localStorage.getItem('bellebn_products')) || [];
+        let sales = JSON.parse(localStorage.getItem('bellebn_sales')) || [];
+        let xp = parseInt(localStorage.getItem('bellebn_xp')) || 0;
+        let level = parseInt(localStorage.getItem('bellebn_level')) || 1;
+        let salesToday = parseInt(localStorage.getItem('bellebn_salesToday')) || 0;
+        let lastSalesDate = localStorage.getItem('bellebn_lastSalesDate') || '';
+        let priceHistory = JSON.parse(localStorage.getItem('bellebn_priceHistory')) || [];
+        let deferredPrompt = null;
+
+        const XP_PER_LEVEL = 200;
+        const ACHIEVEMENTS = [
+            { id: 'first_sale', name: 'First Bloom', desc: 'Made your first sale', xp: 50, check: () => sales.length >= 1 },
+            { id: 'ten_sales', name: 'Bouquet', desc: '10 sales completed', xp: 100, check: () => sales.length >= 10 },
+            { id: 'fifty_sales', name: 'Garden Keeper', desc: '50 sales completed', xp: 300, check: () => sales.length >= 50 },
+            { id: 'hundred_sales', name: 'Floral Empire', desc: '100 sales completed', xp: 500, check: () => sales.length >= 100 },
+            { id: 'low_stock_master', name: 'Stock Whisperer', desc: 'Restocked a low item', xp: 30, check: () => false },
+            { id: 'price_tracker', name: 'Market Analyst', desc: 'Tracked prices for 30 days', xp: 100, check: () => priceHistory.length >= 30 }
+        ];
+        let unlockedAchievements = JSON.parse(localStorage.getItem('bellebn_achievements')) || [];
+
+        // ===================== INIT =====================
+        function init() {
+            createPetals();
+            checkNewDay();
+            renderProducts();
+            updateStats();
+            updatePriceTracker();
+            updateLevel();
+            checkAchievements();
+            setupEventListeners();
+            setupPWA();
+            setupTheme();
+        }
+
+        function createPetals() {
+            const container = document.getElementById('petals');
+            const colors = ['#FFB6C1', '#FFC0CB', '#DDA0DD', '#E6E6FA'];
+            for (let i = 0; i < 8; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                petal.style.left = Math.random() * 100 + 'vw';
+                petal.style.width = (6 + Math.random() * 8) + 'px';
+                petal.style.height = (3 + Math.random() * 4) + 'px';
+                petal.style.background = colors[Math.floor(Math.random() * colors.length)];
+                petal.style.borderRadius = '50%';
+                petal.style.animationDuration = (8 + Math.random() * 12) + 's';
+                petal.style.animationDelay = (Math.random() * 10) + 's';
+                container.appendChild(petal);
+            }
+        }
+
+        function checkNewDay() {
+            const today = new Date().toDateString();
+            if (lastSalesDate !== today) {
+                salesToday = 0;
+                lastSalesDate = today;
+                localStorage.setItem('bellebn_salesToday', '0');
+                localStorage.setItem('bellebn_lastSalesDate', today);
+            }
+        }
+
+        // ===================== THEME =====================
+        function setupTheme() {
+            const saved = localStorage.getItem('bellebn_theme');
+            if (saved === 'dark') document.body.setAttribute('data-theme', 'dark');
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const isDark = document.body.hasAttribute('data-theme');
+                if (isDark) {
+                    document.body.removeAttribute('data-theme');
+                    localStorage.setItem('bellebn_theme', 'light');
+                } else {
+                    document.body.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('bellebn_theme', 'dark');
+                }
+            });
+        }
+
+        // ===================== RENDERING =====================
+        function renderProducts(filter = '') {
+            const list = document.getElementById('productList');
+            const filtered = products.filter(p => 
+                p.name.toLowerCase().includes(filter.toLowerCase()) ||
+                (p.category && p.category.toLowerCase().includes(filter.toLowerCase()))
+            );
+            
+            list.innerHTML = filtered.map(p => {
+                const isLow = p.stock <= (p.lowStock || 3);
+                return `
+                    <div class="product-item ${isLow ? 'low-stock' : ''}" data-id="${p.id}">
+                        <div class="product-icon" style="background:${isLow ? '#FFF0F0' : '#FFF5FA'}">${p.icon || '📦'}</div>
+                        <div class="product-info">
+                            <div class="product-name">${escapeHtml(p.name)}</div>
+                            <div class="product-meta">
+                                ${p.category ? escapeHtml(p.category) + ' • ' : ''}
+                                <span class="${isLow ? 'low' : ''}">${p.stock} in stock${isLow ? ' ⚠️ LOW' : ''}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="product-price">$${parseFloat(p.price).toFixed(2)}</div>
+                            <div class="product-xp">+${p.xp || 10} XP</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Click to edit
+            list.querySelectorAll('.product-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const id = item.dataset.id;
+                    const p = products.find(x => x.id === id);
+                    if (p) openProductModal(p);
+                });
+            });
+        }
+
+        function updateStats() {
+            const totalStock = products.reduce((s, p) => s + (parseInt(p.stock) || 0), 0);
+            const totalRev = sales.reduce((s, sale) => s + (parseFloat(sale.total) || 0), 0);
+            document.getElementById('totalStock').textContent = totalStock;
+            document.getElementById('totalRevenue').textContent = '$' + totalRev.toFixed(2);
+            document.getElementById('salesToday').textContent = salesToday;
+            document.getElementById('salesDelta').textContent = salesToday;
+            document.getElementById('totalXP').textContent = xp;
+        }
+
+        function updateLevel() {
+            const currentLevelXP = (level - 1) * XP_PER_LEVEL;
+            const nextLevelXP = level * XP_PER_LEVEL;
+            const progress = Math.min(100, ((xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100);
+            document.getElementById('levelBadge').textContent = 'LV.' + level;
+            document.getElementById('xpFill').style.width = progress + '%';
+            document.getElementById('xpText').textContent = Math.round(progress) + '%';
+        }
+
+        function addXP(amount) {
+            xp += amount;
+            const oldLevel = level;
+            level = Math.floor(xp / XP_PER_LEVEL) + 1;
+            localStorage.setItem('bellebn_xp', xp);
+            localStorage.setItem('bellebn_level', level);
+            updateLevel();
+            updateStats();
+            if (level > oldLevel) {
+                showToast(`🎉 Level Up! You are now LV.${level}`);
+            }
+        }
+
+        // ===================== PRICE TRACKER =====================
+        function updatePriceTracker() {
+            if (products.length === 0) return;
+            const avgPrice = products.reduce((s, p) => s + parseFloat(p.price || 0), 0) / products.length;
+            
+            // Record price history
+            const today = new Date().toISOString().split('T')[0];
+            const lastEntry = priceHistory[priceHistory.length - 1];
+            if (!lastEntry || lastEntry.date !== today) {
+                priceHistory.push({ date: today, price: avgPrice });
+                if (priceHistory.length > 30) priceHistory.shift();
+                localStorage.setItem('bellebn_priceHistory', JSON.stringify(priceHistory));
+            } else {
+                lastEntry.price = avgPrice;
+                localStorage.setItem('bellebn_priceHistory', JSON.stringify(priceHistory));
+            }
+
+            document.getElementById('avgPrice').textContent = '$' + avgPrice.toFixed(2);
+            
+            const prev = priceHistory.length > 1 ? priceHistory[priceHistory.length - 2].price : avgPrice;
+            const change = avgPrice - prev;
+            const changeEl = document.getElementById('priceChange');
+            if (change >= 0) {
+                changeEl.textContent = '▲ +$' + change.toFixed(2) + ' from last record';
+                changeEl.style.color = 'var(--success)';
+            } else {
+                changeEl.textContent = '▼ -$' + Math.abs(change).toFixed(2) + ' from last record';
+                changeEl.style.color = 'var(--danger)';
+            }
+
+            drawChart();
+        }
+
+        function drawChart() {
+            if (priceHistory.length < 2) return;
+            const prices = priceHistory.map(h => h.price);
+            const min = Math.min(...prices) * 0.95;
+            const max = Math.max(...prices) * 1.05;
+            const range = max - min || 1;
+            
+            const width = 240;
+            const height = 100;
+            const stepX = width / (prices.length - 1);
+            
+            let lineD = '';
+            let areaD = '';
+            prices.forEach((p, i) => {
+                const x = i * stepX;
+                const y = height - ((p - min) / range) * height;
+                if (i === 0) {
+                    lineD += `M ${x} ${y}`;
+                    areaD += `M ${x} ${height} L ${x} ${y}`;
+                } else {
+                    lineD += ` L ${x} ${y}`;
+                    areaD += ` L ${x} ${y}`;
+                }
+            });
+            areaD += ` L ${width} ${height} Z`;
+            
+            document.getElementById('chartLinePath').setAttribute('d', lineD);
+            document.getElementById('chartAreaPath').setAttribute('d', areaD);
+            
+            const lastX = width;
+            const lastY = height - ((prices[prices.length - 1] - min) / range) * height;
+            const dot = document.getElementById('chartDot');
+            dot.setAttribute('cx', lastX);
+            dot.setAttribute('cy', lastY);
+        }
+
+        // ===================== MODALS =====================
+        let editingProduct = null;
+        let stockMode = 'in'; // 'in' or 'out'
+
+        function openProductModal(product = null) {
+            editingProduct = product;
+            document.getElementById('productModalTitle').textContent = product ? '✏️ Edit Product' : '🧴 Add Product';
+            document.getElementById('prodName').value = product ? product.name : '';
+            document.getElementById('prodCategory').value = product ? (product.category || '') : '';
+            document.getElementById('prodIcon').value = product ? (product.icon || '') : '';
+            document.getElementById('prodPrice').value = product ? product.price : '';
+            document.getElementById('prodStock').value = product ? product.stock : '';
+            document.getElementById('prodLowStock').value = product ? (product.lowStock || 3) : '3';
+            document.getElementById('prodXP').value = product ? (product.xp || 10) : '10';
+            document.getElementById('productModal').classList.add('active');
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').classList.remove('active');
+            editingProduct = null;
+        }
+
+        function saveProduct() {
+            const name = document.getElementById('prodName').value.trim();
+            if (!name) { showToast('❌ Product name is required'); return; }
+            
+            const data = {
+                id: editingProduct ? editingProduct.id : 'prod_' + Date.now(),
+                name,
+                category: document.getElementById('prodCategory').value.trim(),
+                icon: document.getElementById('prodIcon').value.trim() || '📦',
+                price: parseFloat(document.getElementById('prodPrice').value) || 0,
+                stock: parseInt(document.getElementById('prodStock').value) || 0,
+                lowStock: parseInt(document.getElementById('prodLowStock').value) || 3,
+                xp: parseInt(document.getElementById('prodXP').value) || 10,
+                createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString()
+            };
+            
+            if (editingProduct) {
+                const idx = products.findIndex(p => p.id === editingProduct.id);
+                if (idx >= 0) products[idx] = data;
+            } else {
+                products.push(data);
+                addXP(20); // XP for adding product
+            }
+            
+            localStorage.setItem('bellebn_products', JSON.stringify(products));
+            renderProducts(document.getElementById('searchBox').value);
+            updateStats();
+            updatePriceTracker();
+            closeProductModal();
+            showToast(editingProduct ? '✅ Product updated!' : '🌸 Product added!');
+        }
+
+        function populateProductSelect(selectId) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = products.map(p => 
+                `<option value="${p.id}">${escapeHtml(p.name)} (${p.stock} in stock)</option>`
+            ).join('');
+        }
+
+        function openSaleModal() {
+            if (products.length === 0) { showToast('❌ Add products first!'); return; }
+            populateProductSelect('saleProduct');
+            const selected = products[0];
+            document.getElementById('salePrice').value = selected.price;
+            document.getElementById('saleQty').value = 1;
+            document.getElementById('saleCustomer').value = '';
+            document.getElementById('saleNotes').value = '';
+            document.getElementById('saleModal').classList.add('active');
+        }
+
+        function closeSaleModal() { document.getElementById('saleModal').classList.remove('active'); }
+
+        function confirmSale() {
+            const prodId = document.getElementById('saleProduct').value;
+            const qty = parseInt(document.getElementById('saleQty').value) || 1;
+            const price = parseFloat(document.getElementById('salePrice').value) || 0;
+            const customer = document.getElementById('saleCustomer').value.trim();
+            const notes = document.getElementById('saleNotes').value.trim();
+            
+            const product = products.find(p => p.id === prodId);
+            if (!product) return;
+            if (product.stock < qty) { showToast('❌ Not enough stock!'); return; }
+            
+            product.stock -= qty;
+            const total = price * qty;
+            
+            sales.push({
+                id: 'sale_' + Date.now(),
+                productId: prodId,
+                productName: product.name,
+                qty,
+                price,
+                total,
+                customer,
+                notes,
+                date: new Date().toISOString()
+            });
+            
+            salesToday += qty;
+            localStorage.setItem('bellebn_products', JSON.stringify(products));
+            localStorage.setItem('bellebn_sales', JSON.stringify(sales));
+            localStorage.setItem('bellebn_salesToday', salesToday);
+            
+            const xpGain = (product.xp || 10) * qty;
+            addXP(xpGain);
+            
+            renderProducts(document.getElementById('searchBox').value);
+            updateStats();
+            updatePriceTracker();
+            closeSaleModal();
+            showToast(`🎉 Sale recorded! +${xpGain} XP`);
+            checkAchievements();
+        }
+
+        function openStockModal(mode) {
+            stockMode = mode;
+            if (products.length === 0) { showToast('❌ Add products first!'); return; }
+            document.getElementById('stockModalTitle').textContent = mode === 'in' ? '📥 Stock In' : '📤 Stock Out';
+            document.getElementById('stockCostGroup').style.display = mode === 'in' ? 'block' : 'none';
+            populateProductSelect('stockProduct');
+            document.getElementById('stockQty').value = 1;
+            document.getElementById('stockCost').value = '';
+            document.getElementById('stockModal').classList.add('active');
+        }
+
+        function closeStockModal() { document.getElementById('stockModal').classList.remove('active'); }
+
+        function confirmStock() {
+            const prodId = document.getElementById('stockProduct').value;
+            const qty = parseInt(document.getElementById('stockQty').value) || 1;
+            const product = products.find(p => p.id === prodId);
+            if (!product) return;
+            
+            if (stockMode === 'in') {
+                product.stock += qty;
+                showToast(`📥 Stocked ${qty} ${product.name}`);
+                addXP(5);
+                if (product.stock - qty <= (product.lowStock || 3)) {
+                    unlockAchievement('low_stock_master');
+                }
+            } else {
+                if (product.stock < qty) { showToast('❌ Not enough stock!'); return; }
+                product.stock -= qty;
+                showToast(`📤 Removed ${qty} ${product.name}`);
+            }
+            
+            localStorage.setItem('bellebn_products', JSON.stringify(products));
+            renderProducts(document.getElementById('searchBox').value);
+            updateStats();
+        }
+
+        // ===================== GITHUB GIST EXPORT =====================
+        async function exportToGist() {
+            const token = document.getElementById('gistToken').value.trim();
+            if (!token) {
+                document.getElementById('gistSection').style.display = 'block';
+                showToast('🔑 Please enter your GitHub token');
+                return;
+            }
+            
+            const statusEl = document.getElementById('gistStatus');
+            statusEl.textContent = 'Uploading...';
+            statusEl.style.color = 'var(--text-muted)';
+            
+            const data = {
+                description: `Belle BN Inventory Backup — ${new Date().toLocaleString()}`,
+                public: false,
+                files: {
+                    'belle_bn_inventory.json': {
+                        content: JSON.stringify({
+                            products,
+                            sales,
+                            xp,
+                            level,
+                            priceHistory,
+                            exportedAt: new Date().toISOString()
+                        }, null, 2)
+                    },
+                    'belle_bn_sales_report.md': {
+                        content: generateMarkdownReport()
+                    }
+                }
+            };
+            
+            try {
+                const res = await fetch('https://api.github.com/gists', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!res.ok) throw new Error('GitHub API error');
+                const result = await res.json();
+                statusEl.innerHTML = `✅ <a href="${result.html_url}" target="_blank" style="color:var(--lavender-deep)">View Gist</a>`;
+                showToast('📤 Exported to GitHub Gist!');
+                addXP(15);
+            } catch (e) {
+                statusEl.textContent = '❌ Upload failed. Check your token.';
+                statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        function generateMarkdownReport() {
+            const totalRev = sales.reduce((s, sale) => s + sale.total, 0);
+            return `# 🌸 Belle BN Sales Report
+**Generated:** ${new Date().toLocaleString()}
+
+## 📊 Summary
+| Metric | Value |
+|--------|-------|
+| Total Products | ${products.length} |
+| Total Stock | ${products.reduce((s,p) => s + p.stock, 0)} |
+| Total Sales | ${sales.length} |
+| Total Revenue | $${totalRev.toFixed(2)} |
+| Current Level | ${level} |
+| Total XP | ${xp} |
+
+## 📦 Inventory
+| Product | Category | Price | Stock | Low Alert |
+|---------|----------|-------|-------|-----------|
+${products.map(p => `| ${p.icon || '📦'} ${p.name} | ${p.category || '-'} | $${p.price} | ${p.stock} | ${p.lowStock || 3} |`).join('\n')}
+
+## 🛒 Recent Sales
+| Date | Product | Qty | Price | Total | Customer |
+|------|---------|-----|-------|-------|----------|
+${sales.slice(-20).reverse().map(s => `| ${new Date(s.date).toLocaleDateString()} | ${s.productName} | ${s.qty} | $${s.price} | $${s.total.toFixed(2)} | ${s.customer || '-'} |`).join('\n')}
+`;
+        }
+
+        // ===================== ACHIEVEMENTS =====================
+        function checkAchievements() {
+            ACHIEVEMENTS.forEach(ach => {
+                if (unlockedAchievements.includes(ach.id)) return;
+                if (ach.check()) {
+                    unlockAchievement(ach.id);
+                }
+            });
+        }
+
+        function unlockAchievement(id) {
+            if (unlockedAchievements.includes(id)) return;
+            const ach = ACHIEVEMENTS.find(a => a.id === id);
+            if (!ach) return;
+            unlockedAchievements.push(id);
+            localStorage.setItem('bellebn_achievements', JSON.stringify(unlockedAchievements));
+            addXP(ach.xp);
+            showToast(`🏅 Achievement: ${ach.name}! +${ach.xp} XP`);
+        }
+
+        // ===================== PWA =====================
+        function setupPWA() {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                document.getElementById('pwaBanner').classList.add('show');
+            });
+            
+            document.getElementById('installBtn').addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    showToast('🌸 Belle BN installed!');
+                    addXP(25);
+                }
+                deferredPrompt = null;
+                document.getElementById('pwaBanner').classList.remove('show');
+            });
+        }
+
+        // ===================== UTILITIES =====================
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('themeToggle').addEventListener('click', () => {});
+            document.getElementById('addProductBtn').addEventListener('click', () => openProductModal());
+            document.getElementById('cancelProduct').addEventListener('click', closeProductModal);
+            document.getElementById('saveProduct').addEventListener('click', saveProduct);
+            document.getElementById('recordSaleBtn').addEventListener('click', openSaleModal);
+            document.getElementById('cancelSale').addEventListener('click', closeSaleModal);
+            document.getElementById('confirmSale').addEventListener('click', confirmSale);
+            document.getElementById('stockInBtn').addEventListener('click', () => openStockModal('in'));
+            document.getElementById('stockOutBtn').addEventListener('click', () => openStockModal('out'));
+            document.getElementById('cancelStock').addEventListener('click', closeStockModal);
+            document.getElementById('confirmStock').addEventListener('click', confirmStock);
+            document.getElementById('searchBox').addEventListener('input', (e) => renderProducts(e.target.value));
+            document.getElementById('exportGistBtn').addEventListener('click', () => {
+                const section = document.getElementById('gistSection');
+                section.style.display = section.style.display === 'none' ? 'block' : 'none';
+            });
+            document.getElementById('doExportGist').addEventListener('click', exportToGist);
+            
+            document.getElementById('saleProduct').addEventListener('change', (e) => {
+                const p = products.find(x => x.id === e.target.value);
+                if (p) document.getElementById('salePrice').value = p.price;
+            });
+            
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) overlay.classList.remove('active');
+                });
+            });
+        }
+
+        // ===================== START =====================
+        init();
+    })();
+    </script>
+</body>
+</html>
