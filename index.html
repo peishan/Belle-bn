@@ -1,1479 +1,1568 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Belle BN — Inventory & Sales Tracker</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#DDA0DD">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌸%3C/text%3E%3C/svg%3E">
-
-    <style>
-        :root {
-            --sakura: #FFB6C1;
-            --sakura-deep: #FF69B4;
-            --lavender: #DDA0DD;
-            --lavender-deep: #BA55D3;
-            --cream: #FFF5FA;
-            --text: #4A3A5A;
-            --text-muted: #8B7B8B;
-            --card-bg: rgba(255, 255, 255, 0.85);
-            --card-border: #E6D5E8;
-            --bg-gradient-start: #FFF0F5;
-            --bg-gradient-mid: #F8F0FF;
-            --bg-gradient-end: #F0E6FF;
-            --success: #4CAF50;
-            --danger: #E53935;
-            --warning: #FF9800;
-        }
-
-        [data-theme="dark"] {
-            --sakura: #FF69B4;
-            --sakura-deep: #FF1493;
-            --lavender: #BA55D3;
-            --lavender-deep: #9932CC;
-            --cream: #2D1B2E;
-            --text: #E8D5E8;
-            --text-muted: #A890A8;
-            --card-bg: rgba(45, 27, 46, 0.9);
-            --card-border: #4A3A5A;
-            --bg-gradient-start: #1A0F2E;
-            --bg-gradient-mid: #2D1B2E;
-            --bg-gradient-end: #0F0A1A;
-            --success: #81C784;
-            --danger: #EF5350;
-            --warning: #FFB74D;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-mid), var(--bg-gradient-end));
-            min-height: 100vh;
-            color: var(--text);
-            transition: all 0.4s ease;
-            overflow-x: hidden;
-        }
-
-        /* Floating Sakura Petals */
-        .petal {
-            position: fixed;
-            pointer-events: none;
-            opacity: 0.4;
-            animation: fall linear infinite;
-            z-index: 0;
-        }
-        @keyframes fall {
-            0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.4; }
-            90% { opacity: 0.4; }
-            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
-        }
-
-        .app-container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 16px;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Header */
-        .header {
-            background: linear-gradient(90deg, var(--sakura), var(--lavender));
-            border-radius: 16px;
-            padding: 18px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 20px rgba(221, 160, 221, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-            animation: shimmer 6s ease-in-out infinite;
-        }
-        @keyframes shimmer {
-            0%, 100% { transform: translate(-30%, -30%) rotate(0deg); }
-            50% { transform: translate(10%, 10%) rotate(180deg); }
-        }
-        .header h1 {
-            font-size: 1.6rem;
-            color: #fff;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            position: relative;
-        }
-        .header-sub { font-size: 0.75rem; opacity: 0.9; font-weight: 400; }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            position: relative;
-        }
-
-        .level-badge {
-            background: linear-gradient(135deg, var(--sakura-deep), var(--lavender-deep));
-            color: #fff;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-
-        .theme-toggle {
-            width: 56px;
-            height: 30px;
-            background: rgba(255,255,255,0.3);
-            border: 1px solid rgba(255,255,255,0.5);
-            border-radius: 15px;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .theme-toggle::after {
-            content: '☀';
-            position: absolute;
-            top: 2px;
-            left: 3px;
-            width: 24px;
-            height: 24px;
-            background: #FFD700;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-        [data-theme="dark"] .theme-toggle::after {
-            content: '🌙';
-            left: 29px;
-            background: #C0C0FF;
-        }
-
-        /* Stats Bar */
-        .stats-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 14px;
-            padding: 14px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(221,160,221,0.2); }
-        .stat-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
-        .stat-delta { font-size: 0.7rem; color: var(--success); font-weight: 600; }
-
-        .xp-bar-container {
-            grid-column: span 4;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 14px;
-            padding: 12px 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .xp-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
-        .xp-track {
-            flex: 1;
-            height: 10px;
-            background: var(--cream);
-            border-radius: 5px;
-            overflow: hidden;
-            border: 1px solid var(--card-border);
-        }
-        .xp-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--sakura), var(--lavender));
-            border-radius: 5px;
-            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-        }
-        .xp-fill::after {
-            content: '';
-            position: absolute;
-            right: 0; top: 0; bottom: 0;
-            width: 20px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
-            animation: xpShine 2s ease-in-out infinite;
-        }
-        @keyframes xpShine {
-            0%, 100% { opacity: 0; }
-            50% { opacity: 1; }
-        }
-        .xp-text { font-size: 0.75rem; font-weight: 700; color: var(--text); min-width: 40px; text-align: right; }
-
-        /* Main Grid */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 280px;
-            gap: 16px;
-        }
-        @media (max-width: 768px) {
-            .main-grid { grid-template-columns: 1fr; }
-            .stats-bar { grid-template-columns: repeat(2, 1fr); }
-            .xp-bar-container { grid-column: span 2; }
-        }
-
-        .panel {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 18px;
-            backdrop-filter: blur(10px);
-        }
-        .panel-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Search */
-        .search-box {
-            width: 100%;
-            padding: 10px 16px;
-            border: 1.5px solid var(--lavender);
-            border-radius: 24px;
-            background: var(--cream);
-            color: var(--text);
-            font-size: 0.9rem;
-            outline: none;
-            transition: all 0.2s;
-            margin-bottom: 14px;
-        }
-        .search-box:focus { border-color: var(--sakura-deep); box-shadow: 0 0 0 3px rgba(255,182,193,0.2); }
-        .search-box::placeholder { color: var(--text-muted); }
-
-        /* Product List */
-        .product-list { max-height: 420px; overflow-y: auto; }
-        .product-list::-webkit-scrollbar { width: 6px; }
-        .product-list::-webkit-scrollbar-track { background: transparent; }
-        .product-list::-webkit-scrollbar-thumb { background: var(--lavender); border-radius: 3px; }
-
-        .product-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 12px;
-            background: var(--cream);
-            border: 1px solid var(--card-border);
-            margin-bottom: 8px;
-            transition: all 0.2s;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-        .product-item:hover { transform: translateX(4px); border-color: var(--lavender); }
-        .product-item.low-stock { border-color: var(--danger); background: linear-gradient(90deg, rgba(229,57,53,0.05), var(--cream)); }
-        .product-item.low-stock::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            width: 3px;
-            background: var(--danger);
-            border-radius: 12px 0 0 12px;
-        }
-
-        .product-icon {
-            width: 44px; height: 44px;
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem;
-            flex-shrink: 0;
-        }
-        .product-info { flex: 1; min-width: 0; }
-        .product-name { font-weight: 600; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .product-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-        .product-meta .low { color: var(--danger); font-weight: 600; }
-        .product-price { font-weight: 700; font-size: 0.95rem; color: var(--text); text-align: right; }
-        .product-xp {
-            font-size: 0.65rem;
-            padding: 3px 8px;
-            border-radius: 10px;
-            background: rgba(76,175,80,0.12);
-            color: var(--success);
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .add-product-btn {
-            width: 100%;
-            padding: 12px;
-            border: 2px dashed var(--lavender);
-            border-radius: 12px;
-            background: transparent;
-            color: var(--lavender-deep);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-        }
-        .add-product-btn:hover { background: rgba(221,160,221,0.1); border-color: var(--sakura-deep); }
-
-        /* Quick Actions */
-        .action-btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .action-btn.primary {
-            background: linear-gradient(135deg, var(--sakura), var(--lavender));
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(221,160,221,0.3);
-        }
-        .action-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(221,160,221,0.4); }
-        .action-btn.secondary {
-            background: var(--cream);
-            color: var(--text);
-            border: 1px solid var(--card-border);
-        }
-        .action-btn.secondary:hover { background: var(--card-bg); border-color: var(--lavender); }
-
-        .action-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        /* Price Tracker Chart */
-        .chart-container {
-            height: 140px;
-            position: relative;
-            margin: 10px 0;
-        }
-        .chart-svg { width: 100%; height: 100%; }
-        .chart-line { fill: none; stroke: url(#chartGrad); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-        .chart-area { fill: url(#chartArea); opacity: 0.3; }
-        .chart-dot { fill: var(--sakura-deep); stroke: #fff; stroke-width: 2; }
-        .chart-labels { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-top: 4px; }
-        .price-current { font-size: 1.6rem; font-weight: 700; color: var(--text); }
-        .price-change { font-size: 0.8rem; color: var(--success); font-weight: 600; }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(4px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            padding: 16px;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 24px;
-            width: 100%;
-            max-width: 420px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: scale(0.9) translateY(20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .modal-title { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 16px; }
-        .form-group { margin-bottom: 14px; }
-        .form-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
-        .form-input {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1.5px solid var(--card-border);
-            border-radius: 10px;
-            background: var(--cream);
-            color: var(--text);
-            font-size: 0.9rem;
-            outline: none;
-            transition: all 0.2s;
-        }
-        .form-input:focus { border-color: var(--lavender); box-shadow: 0 0 0 3px rgba(221,160,221,0.15); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
-        .modal-actions .action-btn { margin: 0; }
-        .btn-cancel { background: var(--cream); color: var(--text-muted); border: 1px solid var(--card-border); }
-
-        /* Achievement Toast */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%) translateY(120px);
-            background: linear-gradient(135deg, var(--sakura-deep), var(--lavender-deep));
-            color: #fff;
-            padding: 14px 28px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            box-shadow: 0 8px 24px rgba(186,85,211,0.4);
-            z-index: 200;
-            opacity: 0;
-            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            white-space: nowrap;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-
-        /* PWA Install Banner */
-        .pwa-banner {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: var(--card-bg);
-            border-top: 1px solid var(--card-border);
-            padding: 12px 20px;
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 150;
-            backdrop-filter: blur(10px);
-        }
-        .pwa-banner.show { display: flex; }
-        .pwa-banner-text { font-size: 0.85rem; color: var(--text); }
-        .pwa-banner-btn {
-            background: linear-gradient(135deg, var(--sakura), var(--lavender));
-            color: #fff;
-            border: none;
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
-        /* GitHub Gist Section */
-        .gist-section {
-            margin-top: 12px;
-            padding: 12px;
-            background: var(--cream);
-            border-radius: 10px;
-            border: 1px solid var(--card-border);
-        }
-        .gist-section p { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
-        .gist-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            background: var(--card-bg);
-            color: var(--text);
-            font-size: 0.8rem;
-            margin-bottom: 8px;
-        }
-
-        /* Animations */
-        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        .pop { animation: pop 0.3s ease; }
-
-        /* Scrollbar for modal */
-        .modal::-webkit-scrollbar { width: 6px; }
-        .modal::-webkit-scrollbar-thumb { background: var(--lavender); border-radius: 3px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#f5c2e7">
+<meta name="description" content="Belle BN - Gamified Inventory & Sales Tracker for Skincare & Eczema Care">
+<title>Belle BN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff0f5;
+    --bg-card: #ffffff;
+    --bg-input: #faf5ff;
+    --text: #4a3b52;
+    --text-muted: #8b7d9b;
+    --border: #e8d5f0;
+    --accent-pink: #f5c2e7;
+    --accent-lavender: #c4a0e0;
+    --accent-violet: #a78bfa;
+    --accent-rose: #f472b6;
+    --accent-mauve: #d8b4fe;
+    --danger: #f87171;
+    --success: #86efac;
+    --warning: #fde047;
+    --shadow: rgba(196,160,224,0.15);
+    --header-gradient: linear-gradient(135deg, #f5c2e7, #c4a0e0);
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
+  }
+  [data-theme="dark"] {
+    --bg: #1a1425;
+    --bg-card: #231d33;
+    --bg-input: #2d2440;
+    --text: #f0e6ff;
+    --text-muted: #a89bb8;
+    --border: #3d2f52;
+    --accent-pink: #f5c2e7;
+    --accent-lavender: #c4a0e0;
+    --accent-violet: #a78bfa;
+    --accent-rose: #f472b6;
+    --accent-mauve: #d8b4fe;
+    --danger: #f87171;
+    --success: #86efac;
+    --warning: #fde047;
+    --shadow: rgba(0,0,0,0.3);
+    --header-gradient: linear-gradient(135deg, #f5c2e7, #a78bfa);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Nunito', 'Poppins', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.3s, color 0.3s;
+  }
+  h1, h2, h3, .logo, .stat-value, .level-pill, .modal-title, .card-title { font-family: 'Poppins', 'Nunito', sans-serif; }
+  .app-container { max-width: 900px; margin: 0 auto; padding: 12px; padding-bottom: 80px; }
+  .app-header {
+    background: var(--header-gradient);
+    border-radius: 24px;
+    padding: 24px 20px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 12px 40px var(--shadow);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .app-header::before {
+    content: "";
+    position: absolute; top: -60%; right: -25%;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(255,255,255,0.25), transparent 70%);
+    border-radius: 50%;
+    animation: float 6s ease-in-out infinite;
+  }
+  .app-header::after {
+    content: "";
+    position: absolute; bottom: -40%; left: -10%;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%);
+    border-radius: 50%;
+    animation: float 8s ease-in-out infinite reverse;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-15px) scale(1.05); }
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+  .logo { font-size: 1.7rem; font-weight: 800; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.15); letter-spacing: -0.5px; }
+  .logo-sub { font-size: 0.78rem; color: rgba(255,255,255,0.9); margin-top: 2px; font-weight: 500; }
+  .theme-toggle {
+    background: rgba(255,255,255,0.25);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.3rem;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    position: relative; z-index: 1;
+  }
+  .theme-toggle:hover { background: rgba(255,255,255,0.45); transform: scale(1.15) rotate(15deg); }
+  .theme-toggle:active { transform: scale(0.95); }
+  .xp-section {
+    margin-top: 16px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 18px;
+    padding: 14px 18px;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.2);
+    position: relative; z-index: 1;
+  }
+  .xp-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .level-pill {
+    background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,215,0,0.15));
+    border: 1.5px solid rgba(255,215,0,0.5);
+    border-radius: 24px;
+    padding: 5px 16px;
+    font-size: 0.85rem;
+    color: #fff;
+    font-weight: 800;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    display: flex; align-items: center; gap: 6px;
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  @keyframes glow {
+    from { box-shadow: 0 0 5px rgba(255,215,0,0.3); }
+    to { box-shadow: 0 0 15px rgba(255,215,0,0.6); }
+  }
+  .streak-text { font-size: 0.82rem; color: rgba(255,255,255,0.95); font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .xp-bar-wrap { width: 100%; height: 10px; background: rgba(0,0,0,0.12); border-radius: 5px; overflow: hidden; position: relative; }
+  .xp-bar-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ffec8b, #fff); border-radius: 5px; transition: width 1s cubic-bezier(0.4,0,0.2,1); position: relative; }
+  .xp-bar-fill::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .xp-label { font-size: 0.72rem; color: rgba(255,255,255,0.85); margin-top: 5px; text-align: right; font-weight: 600; }
+  .rank-display {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .rank-icon { font-size: 1.8rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+  .rank-info { flex: 1; }
+  .rank-title { font-size: 0.9rem; font-weight: 700; color: #fff; }
+  .rank-sub { font-size: 0.72rem; color: rgba(255,255,255,0.8); }
+  .rank-progress { font-size: 0.75rem; color: #ffd700; font-weight: 700; }
+  .nav { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 14px; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    color: var(--text-muted);
+    padding: 10px 18px;
+    border-radius: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 2px 10px var(--shadow);
+    font-family: 'Poppins', sans-serif;
+  }
+  .nav-btn:hover, .nav-btn.active {
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-lavender));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 6px 20px rgba(196,160,224,0.45);
+    font-weight: 700;
+    transform: translateY(-2px);
+  }
+  .nav-btn:active { transform: scale(0.96); }
+  .card {
+    background: var(--bg-card);
+    border-radius: 24px;
+    padding: 22px;
+    margin-bottom: 16px;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 6px 24px var(--shadow);
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent-pink), var(--accent-lavender), var(--accent-violet));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px var(--shadow); }
+  .card:hover::before { opacity: 1; }
+  .card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title .icon { font-size: 1.3rem; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+  .stat-box {
+    background: linear-gradient(135deg, var(--bg), var(--bg-input));
+    border-radius: 18px;
+    padding: 18px 14px;
+    text-align: center;
+    border: 1.5px solid var(--border);
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-box::after {
+    content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(196,160,224,0.08), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .stat-box:hover { transform: scale(1.04) translateY(-2px); box-shadow: 0 8px 24px var(--shadow); }
+  .stat-box:hover::after { opacity: 1; }
+  .stat-value { font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, var(--accent-rose), var(--accent-violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Poppins', sans-serif; }
+  .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; font-weight: 600; }
+  .stat-delta { font-size: 0.7rem; font-weight: 700; margin-top: 3px; }
+  .stat-delta.up { color: #22c55e; }
+  .stat-delta.down { color: var(--danger); }
+  .quick-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .btn {
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-lavender));
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.88rem;
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 4px 18px rgba(196,160,224,0.35);
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn::after {
+    content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    transition: left 0.5s;
+  }
+  .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(196,160,224,0.5); }
+  .btn:hover::after { left: 100%; }
+  .btn:active { transform: scale(0.96); }
+  .btn-sm { padding: 8px 14px; font-size: 0.8rem; border-radius: 12px; }
+  .btn-outline {
+    background: transparent;
+    border: 2px solid var(--accent-lavender);
+    color: var(--accent-violet);
+    box-shadow: none;
+  }
+  .btn-outline:hover { background: linear-gradient(135deg, var(--accent-pink), var(--accent-lavender)); color: #fff; border-color: transparent; }
+  .btn-danger { background: linear-gradient(135deg, #fca5a5, var(--danger)); box-shadow: 0 4px 18px rgba(248,113,113,0.3); }
+  .btn-success { background: linear-gradient(135deg, #86efac, #4ade80); color: #1a3a1a; box-shadow: 0 4px 18px rgba(74,222,128,0.3); }
+  .btn-gold { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #4a3000; box-shadow: 0 4px 18px rgba(255,170,0,0.35); }
+  .input {
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    width: 100%;
+    transition: all 0.2s;
+    font-family: 'Nunito', sans-serif;
+  }
+  .input:focus { outline: none; border-color: var(--accent-lavender); box-shadow: 0 0 0 4px rgba(196,160,224,0.15); }
+  .input::placeholder { color: var(--text-muted); opacity: 0.6; }
+  .search-box { margin-bottom: 14px; }
+  .filter-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-tab {
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 16px;
+    border-radius: 24px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-family: 'Poppins', sans-serif;
+  }
+  .filter-tab.active {
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-lavender));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 3px 14px rgba(196,160,224,0.35);
+  }
+  .product-row {
+    display: grid;
+    grid-template-columns: 2.2fr 1fr 1fr 1fr 1fr 100px;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+  .product-row:hover { background: var(--bg-input); border-radius: 10px; padding-left: 8px; padding-right: 8px; margin: 0 -8px; }
+  .product-row.header { font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; }
+  .product-row:last-child { border-bottom: none; }
+  .product-name { font-weight: 700; }
+  .product-sku { font-size: 0.74rem; color: var(--text-muted); font-weight: 500; }
+  .stock-low { color: var(--danger); font-weight: 800; }
+  .stock-ok { color: #22c55e; font-weight: 700; }
+  .stock-mid { color: var(--warning); font-weight: 700; }
+  .sale-row {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr 1fr 1fr 100px;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+  .sale-row:hover { background: var(--bg-input); border-radius: 10px; padding-left: 8px; padding-right: 8px; margin: 0 -8px; }
+  .sale-row.header { font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; }
+  .status-paid { color: #22c55e; font-weight: 700; }
+  .status-pending { color: #f59e0b; font-weight: 700; }
+  .price-tracker-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 90px;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .price-tracker-row.header { font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; }
+  .trend-up { color: #22c55e; }
+  .trend-down { color: var(--danger); }
+  .trend-flat { color: var(--text-muted); }
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,20,37,0.65);
+    backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 16px;
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--bg-card);
+    border-radius: 28px;
+    padding: 28px;
+    max-width: 540px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 24px 64px var(--shadow);
+    animation: slideUp 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+  @keyframes slideUp { from { transform: translateY(40px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+  .modal-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 20px; color: var(--text); }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .badge-item {
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    transition: all 0.3s;
+    cursor: default;
+    flex: 1;
+    min-width: 140px;
+  }
+  .badge-item.earned {
+    border-color: var(--accent-lavender);
+    background: linear-gradient(135deg, rgba(245,194,231,0.2), rgba(196,160,224,0.2));
+    color: var(--text);
+    box-shadow: 0 4px 16px rgba(196,160,224,0.2);
+    transform: scale(1.02);
+  }
+  .badge-item.earned .badge-icon { filter: drop-shadow(0 2px 4px rgba(196,160,224,0.4)); }
+  .badge-item .badge-icon { font-size: 1.5rem; transition: transform 0.3s; }
+  .badge-item.earned:hover .badge-icon { transform: scale(1.2) rotate(10deg); }
+  .badge-name { font-weight: 700; }
+  .badge-desc { font-size: 0.72rem; opacity: 0.8; }
+  .quest-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px;
+    background: var(--bg-input);
+    border-radius: 16px;
+    margin-bottom: 10px;
+    border: 1.5px solid var(--border);
+    transition: all 0.3s;
+  }
+  .quest-item:hover { border-color: var(--accent-lavender); transform: translateX(4px); }
+  .quest-item.completed { opacity: 0.6; border-color: var(--success); background: rgba(134,239,172,0.08); }
+  .quest-icon { font-size: 1.4rem; }
+  .quest-info { flex: 1; }
+  .quest-title { font-weight: 700; font-size: 0.9rem; }
+  .quest-desc { font-size: 0.75rem; color: var(--text-muted); }
+  .quest-reward { font-size: 0.75rem; color: #ffd700; font-weight: 700; }
+  .quest-progress { width: 80px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .quest-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-pink), var(--accent-violet)); border-radius: 3px; transition: width 0.5s; }
+  .toast-container { position: fixed; bottom: 24px; right: 16px; left: 16px; z-index: 200; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+  .toast {
+    background: var(--bg-card);
+    border: 2px solid var(--accent-lavender);
+    border-radius: 18px;
+    padding: 16px 20px;
+    color: var(--text);
+    font-size: 0.92rem;
+    animation: slideInRight 0.4s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 10px 40px var(--shadow);
+    pointer-events: auto;
+    display: flex; align-items: center; gap: 12px;
+    font-weight: 600;
+  }
+  @keyframes slideInRight { from { transform: translateX(120px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .toast.success { border-color: #86efac; }
+  .toast.error { border-color: var(--danger); }
+  .toast.levelup {
+    border-color: #ffd700;
+    background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(245,194,231,0.15));
+    animation: slideInRight 0.5s cubic-bezier(0.4,0,0.2,1), glowPulse 2s ease-in-out infinite;
+  }
+  @keyframes glowPulse { 0%,100% { box-shadow: 0 10px 40px rgba(255,215,0,0.2); } 50% { box-shadow: 0 10px 50px rgba(255,215,0,0.4); } }
+  .toast.badge-earned {
+    border-color: var(--accent-violet);
+    background: linear-gradient(135deg, rgba(167,139,250,0.1), rgba(245,194,231,0.1));
+  }
+  .level-up-anim { animation: pulseScale 0.8s ease 3; }
+  @keyframes pulseScale { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  .chart-bar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .chart-bar-inner {
+    width: 100%;
+    background: linear-gradient(to top, var(--accent-pink), var(--accent-violet));
+    border-radius: 8px 8px 0 0;
+    min-height: 4px;
+    transition: height 0.6s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+  }
+  .chart-bar-inner::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent);
+    border-radius: 8px 8px 0 0;
+  }
+  .chart-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+  .chart-value { font-size: 0.72rem; font-weight: 700; color: var(--text); }
+  .chart-container { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding-top: 20px; }
+  .gist-section { background: var(--bg-input); border-radius: 18px; padding: 18px; margin-top: 14px; border: 1.5px solid var(--border); }
+  .gist-url { font-size: 0.8rem; color: var(--text-muted); word-break: break-all; }
+  .hidden { display: none !important; }
+  .alert-card { border: 2px solid var(--danger); }
+  .alert-card .card-title { color: var(--danger); }
+  .insights-list { font-size: 0.9rem; color: var(--text-muted); line-height: 1.9; }
+  .insights-list strong { color: var(--text); }
+  .empty-state { color: var(--text-muted); font-size: 0.92rem; text-align: center; padding: 24px; font-weight: 500; }
+  .recent-sale-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .recent-sale-item:last-child { border-bottom: none; }
+  .recent-sale-customer { font-weight: 700; color: var(--text); }
+  .recent-sale-meta { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; }
+  .recent-sale-total { font-weight: 800; color: var(--text); font-family: 'Poppins', sans-serif; }
+  select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a89bb8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+  .leaderboard-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-input);
+    border-radius: 14px;
+    margin-bottom: 8px;
+    border: 1.5px solid var(--border);
+    transition: all 0.2s;
+  }
+  .leaderboard-item:hover { transform: translateX(4px); border-color: var(--accent-lavender); }
+  .lb-rank { font-size: 1.2rem; font-weight: 800; width: 32px; text-align: center; }
+  .lb-rank.gold { color: #ffd700; text-shadow: 0 1px 3px rgba(255,215,0,0.3); }
+  .lb-rank.silver { color: #c0c0c0; }
+  .lb-rank.bronze { color: #cd7f32; }
+  .lb-info { flex: 1; }
+  .lb-name { font-weight: 700; }
+  .lb-meta { font-size: 0.75rem; color: var(--text-muted); }
+  .lb-xp { font-weight: 800; color: var(--accent-violet); font-family: 'Poppins', sans-serif; }
+  .achievement-popup {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-lavender));
+    color: #fff;
+    padding: 16px 28px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 12px 40px rgba(196,160,224,0.5);
+    z-index: 300;
+    animation: achievementPop 0.6s cubic-bezier(0.4,0,0.2,1);
+    display: flex; align-items: center; gap: 12px;
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+  @keyframes achievementPop {
+    0% { transform: translateX(-50%) translateY(-100px) scale(0.8); opacity: 0; }
+    60% { transform: translateX(-50%) translateY(10px) scale(1.05); }
+    100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+  }
+  @media (max-width: 600px) {
+    .product-row { grid-template-columns: 2fr 1fr 1fr 1fr 80px; font-size: 0.84rem; }
+    .product-row.header { display: none; }
+    .sale-row { grid-template-columns: 1fr 1fr 90px; }
+    .sale-row.header { display: none; }
+    .price-tracker-row { grid-template-columns: 2fr 1fr 1fr 1fr 80px; }
+    .price-tracker-row.header { display: none; }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .logo { font-size: 1.4rem; }
+    .app-header { padding: 18px 16px 16px; }
+    .modal { padding: 20px; border-radius: 24px; }
+    .chart-container { height: 120px; }
+  }
+</style>
 </head>
 <body>
-    <!-- Floating Petals -->
-    <div id="petals"></div>
+<div id="app"></div>
+<div id="achievement-popup" class="achievement-popup hidden"></div>
+<script>
 
-    <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div>
-                <h1>🌸 Belle BN <span class="header-sub">Inventory & Sales Tracker</span></h1>
-            </div>
-            <div class="header-actions">
-                <div class="level-badge" id="levelBadge">LV.1</div>
-                <div class="theme-toggle" id="themeToggle" title="Toggle light/dark mode"></div>
-            </div>
-        </header>
+// ========================
+// BELLE BN - GAMIFIED
+// ========================
 
-        <!-- Stats Bar -->
-        <div class="stats-bar">
-            <div class="stat-card">
-                <div class="stat-label">📦 Total Stock</div>
-                <div class="stat-value" id="totalStock">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">💰 Revenue</div>
-                <div class="stat-value" id="totalRevenue">$0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">📈 Sales Today</div>
-                <div class="stat-value" id="salesToday">0</div>
-                <div class="stat-delta">+<span id="salesDelta">0</span></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">🏆 Total XP</div>
-                <div class="stat-value" id="totalXP">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">💵 Est. Profit</div>
-                <div class="stat-value" id="totalProfit">$0</div>
-            </div>
-            <div class="xp-bar-container">
-                <span class="xp-label">🌟 Level Progress</span>
-                <div class="xp-track">
-                    <div class="xp-fill" id="xpFill" style="width: 0%"></div>
-                </div>
-                <span class="xp-text" id="xpText">0%</span>
-            </div>
-        </div>
+const RANKS = [
+  { name: 'Novice Seller', icon: '\uD83C\uDF31', min: 0, color: '#8b7d9b' },
+  { name: 'Rising Star', icon: '\u2B50', min: 500, color: '#c4a0e0' },
+  { name: 'Belle Merchant', icon: '\uD83D\uDC9C', min: 1500, color: '#a78bfa' },
+  { name: 'Glow Guru', icon: '\u2728', min: 3000, color: '#f472b6' },
+  { name: 'Skincare Tycoon', icon: '\uD83D\uDC51', min: 6000, color: '#ffd700' },
+  { name: 'Legendary Belle', icon: '\uD83D\uDC8E', min: 12000, color: '#ff6b9d' }
+];
 
-        <!-- Main Grid -->
-        <div class="main-grid">
-            <!-- Left: Product Inventory -->
-            <div class="panel">
-                <div class="panel-title">📋 Product Inventory</div>
-                <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search products...">
-                <div class="product-list" id="productList"></div>
-                <button class="add-product-btn" id="addProductBtn">+ Add New Product</button>
-            </div>
+const BADGES = [
+  { id: 'first_sale', name: 'First Blood', icon: '\uD83C\uDFAF', desc: 'Make your first sale', condition: (s) => s.totalSales >= 1 },
+  { id: 'hundred_club', name: '$100 Club', icon: '\uD83D\uDCB5', desc: 'Reach $100 in total sales', condition: (s) => s.totalSales >= 100 },
+  { id: 'five_hundred', name: '$500 Club', icon: '\uD83D\uDCB0', desc: 'Reach $500 in total sales', condition: (s) => s.totalSales >= 500 },
+  { id: 'thousand_club', name: 'Grandmaster', icon: '\uD83C\uDFC6', desc: 'Reach $1,000 in total sales', condition: (s) => s.totalSales >= 1000 },
+  { id: 'soap_star', name: 'Soap Star', icon: '\uD83E\uDDFC', desc: 'Sell 20+ soap items', condition: (s) => (s.productCounts['Tumeric Kojic Soap']||0) >= 20 },
+  { id: 'cream_queen', name: 'Cream Queen', icon: '\uD83E\uDDF4', desc: 'Sell 15+ cream items', condition: (s) => (s.productCounts['West Month Tumeric Cream']||0) >= 15 },
+  { id: 'bai_master', name: 'Bai Master', icon: '\uD83C\uDF3F', desc: 'Sell 30+ Bai Yao Lang', condition: (s) => (s.productCounts['Bai Yao Lang 20G']||0) >= 30 },
+  { id: 'consistent', name: 'Streak Keeper', icon: '\uD83D\uDD25', desc: '7-day sales streak', condition: (s) => s.streak >= 7 },
+  { id: 'weekend_warrior', name: 'Weekend Warrior', icon: '\uD83D\uDCC5', desc: 'Sell on 4 weekends', condition: (s) => s.weekendSales >= 4 },
+  { id: 'diverse', name: 'Diverse Portfolio', icon: '\uD83D\uDCE6', desc: 'Sell 10+ different products', condition: (s) => Object.keys(s.productCounts).length >= 10 },
+  { id: 'big_day', name: 'Big Day', icon: '\uD83D\uDE80', desc: 'Single day $50+ sales', condition: (s) => s.maxDailySales >= 50 },
+  { id: 'july_hero', name: 'July Hero', icon: '\uD83D\uDCC8', desc: '$100+ in July 2026', condition: (s) => s.monthlySales['2026-07'] >= 100 }
+];
 
-            <!-- Right: Actions & Tracker -->
-            <div>
-                <div class="panel" style="margin-bottom: 16px;">
-                    <div class="panel-title">⚡ Quick Actions</div>
-                    <button class="action-btn primary" id="recordSaleBtn">🛒 Record Sale</button>
-                    <div class="action-grid">
-                        <button class="action-btn secondary" id="stockInBtn">📥 Stock In</button>
-                        <button class="action-btn secondary" id="stockOutBtn">📤 Stock Out</button>
-                    </div>
-                    <button class="action-btn secondary" id="exportGistBtn">📊 Export to Gist</button>
-                    <div class="gist-section" id="gistSection" style="display:none;">
-                        <p>Paste your GitHub Personal Access Token (with gist scope):</p>
-                        <input type="password" class="gist-input" id="gistToken" placeholder="ghp_xxxxxxxxxxxx">
-                        <button class="action-btn primary" id="doExportGist" style="font-size:0.8rem;padding:8px;">📤 Upload to Gist</button>
-                        <p id="gistStatus" style="margin-top:6px;font-size:0.7rem;"></p>
-                    </div>
-                </div>
+const QUESTS = [
+  { id: 'daily_sale', title: 'Daily Hustle', desc: 'Make at least 1 sale today', target: 1, reward: 50, type: 'daily' },
+  { id: 'stock_check', title: 'Inventory Guardian', desc: 'Review low stock items', target: 1, reward: 30, type: 'daily' },
+  { id: 'week_goal', title: 'Weekly Warrior', desc: 'Reach $50 in sales this week', target: 50, reward: 200, type: 'weekly' },
+  { id: 'month_goal', title: 'Monthly Maven', desc: 'Reach $150 in sales this month', target: 150, reward: 500, type: 'monthly' }
+];
 
-                <div class="panel">
-                    <div class="panel-title">📈 Price Tracker</div>
-                    <div style="margin-bottom:8px;">
-                        <div class="price-current" id="avgPrice">$0.00</div>
-                        <div class="price-change" id="priceChange">▲ +$0.00 from last month</div>
-                    </div>
-                    <div class="chart-container">
-                        <svg class="chart-svg" viewBox="0 0 240 100" preserveAspectRatio="none">
-                            <defs>
-                                <linearGradient id="chartGrad" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%" stop-color="#FFB6C1"/>
-                                    <stop offset="100%" stop-color="#DDA0DD"/>
-                                </linearGradient>
-                                <linearGradient id="chartArea" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#FFB6C1" stop-opacity="0.4"/>
-                                    <stop offset="100%" stop-color="#DDA0DD" stop-opacity="0"/>
-                                </linearGradient>
-                            </defs>
-                            <path id="chartAreaPath" class="chart-area" d=""/>
-                            <path id="chartLinePath" class="chart-line" d=""/>
-                            <circle id="chartDot" class="chart-dot" cx="0" cy="0" r="4"/>
-                        </svg>
-                    </div>
-                    <div class="chart-labels">
-                        <span>Jan</span><span>Mar</span><span>May</span><span>Jul</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modals -->
-    <div class="modal-overlay" id="productModal">
-        <div class="modal">
-            <div class="modal-title" id="productModalTitle">🧴 Add Product</div>
-            <div class="form-group">
-                <label class="form-label">Product Name</label>
-                <input type="text" class="form-input" id="prodName" placeholder="e.g. Bai Fu Ling 15G">
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Category</label>
-                    <input type="text" class="form-input" id="prodCategory" placeholder="Eczema Care">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Icon (emoji)</label>
-                    <input type="text" class="form-input" id="prodIcon" placeholder="🧴" maxlength="2">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Price ($)</label>
-                    <input type="number" class="form-input" id="prodPrice" placeholder="5.00" step="0.01" min="0">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Stock Qty</label>
-                    <input type="number" class="form-input" id="prodStock" placeholder="10" min="0">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Low Stock Alert</label>
-                    <input type="number" class="form-input" id="prodLowStock" placeholder="3" min="0">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">XP per Sale</label>
-                    <input type="number" class="form-input" id="prodXP" placeholder="10" min="1">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Cost Price ($)</label>
-                    <input type="number" class="form-input" id="prodCost" placeholder="0.00" step="0.01" min="0">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Shipping / Unit ($)</label>
-                    <input type="number" class="form-input" id="prodShipping" placeholder="0.00" step="0.01" min="0">
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="action-btn btn-cancel" id="cancelProduct">Cancel</button>
-                <button class="action-btn primary" id="saveProduct">Save Product</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="saleModal">
-        <div class="modal">
-            <div class="modal-title">🛒 Record Sale</div>
-            <div class="form-group">
-                <label class="form-label">Select Product</label>
-                <select class="form-input" id="saleProduct" style="appearance:auto;"></select>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Quantity Sold</label>
-                    <input type="number" class="form-input" id="saleQty" value="1" min="1">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Sale Price ($)</label>
-                    <input type="number" class="form-input" id="salePrice" step="0.01" min="0">
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Customer (optional)</label>
-                <input type="text" class="form-input" id="saleCustomer" placeholder="Customer name">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Notes</label>
-                <input type="text" class="form-input" id="saleNotes" placeholder="Any notes...">
-            </div>
-            <div class="modal-actions">
-                <button class="action-btn btn-cancel" id="cancelSale">Cancel</button>
-                <button class="action-btn primary" id="confirmSale">Confirm Sale</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="stockModal">
-        <div class="modal">
-            <div class="modal-title" id="stockModalTitle">📥 Stock In</div>
-            <div class="form-group">
-                <label class="form-label">Select Product</label>
-                <select class="form-input" id="stockProduct" style="appearance:auto;"></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Quantity</label>
-                <input type="number" class="form-input" id="stockQty" value="1" min="1">
-            </div>
-            <div class="form-group" id="stockCostGroup">
-                <label class="form-label">Cost per Unit ($)</label>
-                <input type="number" class="form-input" id="stockCost" placeholder="Optional" step="0.01" min="0">
-            </div>
-            <div class="form-group" id="stockShippingGroup">
-                <label class="form-label">Shipping / Unit ($)</label>
-                <input type="number" class="form-input" id="stockShipping" placeholder="Optional" step="0.01" min="0">
-            </div>
-            <div class="modal-actions">
-                <button class="action-btn btn-cancel" id="cancelStock">Cancel</button>
-                <button class="action-btn primary" id="confirmStock">Confirm</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
-
-    <!-- PWA Install Banner -->
-    <div class="pwa-banner" id="pwaBanner">
-        <span class="pwa-banner-text">📲 Install Belle BN for offline access!</span>
-        <button class="pwa-banner-btn" id="installBtn">Install</button>
-    </div>
-
-    <script>
-    (function() {
-        // ===================== REAL SALES SEED (67. GPS sheets, May-Jul 2026) =====================
-        const SEED_PRODUCTS = [
-            {id:"prod_6714", name:"Ximonth Massage Gel", category:"Body", icon:"\ud83e\uddf4", price:8, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6751", name:"Bai Yao Lang 20G", category:"Herbal", icon:"\ud83c\udf3f", price:4, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6741", name:"West Month Tumeric Cream", category:"Postnatal", icon:"\ud83e\udeb7", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6725", name:"Huatuo Bai Fu Ling (15G)", category:"Herbal", icon:"\ud83c\udf3f", price:3, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6766", name:"Bai Fu Ling 22G Pink", category:"Herbal", icon:"\ud83c\udf3f", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6742", name:"West&Month Tumeric Serum", category:"Postnatal", icon:"\ud83e\udeb7", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6736", name:"Ouhoe NMN Hair Roller", category:"Hair", icon:"\ud83d\udc87", price:6, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6713", name:"Eelhoe Rosemary Essential Oil", category:"Hair", icon:"\ud83c\udf3f", price:6, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6797", name:"Tumeric Kojic Soap", category:"Face", icon:"\ud83e\uddfc", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6744", name:"G2G Centella Moisturizer", category:"Face", icon:"\ud83e\uddf4", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6798", name:"Jaysuing Tumeric Cleanser", category:"Face", icon:"\ud83e\uddfc", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6718", name:"G2G Deep Pore Facial Wash Black", category:"Face", icon:"\ud83e\uddfc", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6799", name:"Tumbler", category:"Merch", icon:"\ud83e\udea3", price:10, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6770", name:"G2G Glycolic Acid Facial Wash", category:"Face", icon:"\ud83e\uddfc", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6760", name:"G2G Micellar Water", category:"Face", icon:"\ud83d\udca7", price:10, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6765", name:"Tumeric Cleanser", category:"Face", icon:"\ud83e\uddfc", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6796", name:"G2G Cleansing Oil", category:"Face", icon:"\ud83e\uddf4", price:8, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6720", name:"G2G Glycolic Peeling Gel", category:"Face", icon:"\ud83e\uddfc", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6800", name:"G2G PDRN Serum", category:"Face", icon:"\ud83d\udc89", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6740", name:"G2G Niacinamide Facial Wash (Pink)", category:"Face", icon:"\ud83e\uddfc", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6801", name:"Tumeric Toner", category:"Face", icon:"\ud83d\udca7", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6802", name:"Withyou Cream", category:"Face", icon:"\ud83e\udeb7", price:4, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6803", name:"Sunscreen WAWA", category:"Face", icon:"\u2600\ufe0f", price:13, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6804", name:"West Month Serum", category:"Postnatal", icon:"\ud83d\udc89", price:5, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6790", name:"G2G Setting Spray", category:"Makeup", icon:"\ud83d\udc84", price:10, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6731", name:"Panda's Beauty Astralagus Cream", category:"Herbal", icon:"\ud83e\udeb7", price:4, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_6805", name:"PDRN Moisturizer", category:"Face", icon:"\ud83d\udc89", price:7, stock:0, lowStock:3, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()},
-            {id:"prod_custom", name:"Custom / Bundle Order", category:"Other", icon:"\ud83c\udf81", price:0, stock:9999, lowStock:0, xp:10, cost:0, shipping:0, createdAt:new Date().toISOString()}
-        ];
-
-        // date field kept as plain YYYY-MM-DD (real sale date); cancelled:true for the one GAGAL (failed) entry
-        const SEED_SALES_RAW = [
-            // ---- MAY 2026 ----
-            {date:"2026-05-02",sku:"prod_6714",qty:1,price:8,customer:"",notes:""},
-            {date:"2026-05-02",sku:"prod_6751",qty:2,price:4,customer:"",notes:""},
-            {date:"2026-05-02",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-03",sku:"prod_custom",qty:2,price:5,customer:"Aufiya",notes:""},
-            {date:"2026-05-03",sku:"prod_6725",qty:3,price:3,customer:"",notes:""},
-            {date:"2026-05-03",sku:"prod_6766",qty:2,price:5,customer:"",notes:""},
-            {date:"2026-05-03",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-03",sku:"prod_6742",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-03",sku:"prod_6736",qty:1,price:6,customer:"",notes:""},
-            {date:"2026-05-04",sku:"prod_6713",qty:1,price:6,customer:"",notes:""},
-            {date:"2026-05-04",sku:"prod_6725",qty:2,price:3,customer:"",notes:""},
-            {date:"2026-05-04",sku:"prod_6797",qty:3,price:5,customer:"",notes:""},
-            {date:"2026-05-04",sku:"prod_6744",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-05-05",sku:"prod_6798",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-05",sku:"prod_6742",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-05",sku:"prod_6718",qty:2,price:8,customer:"",notes:""},
-            {date:"2026-05-05",sku:"prod_6799",qty:2,price:10,customer:"",notes:""},
-            {date:"2026-05-05",sku:"prod_6751",qty:1,price:4,customer:"",notes:""},
-            {date:"2026-05-09",sku:"prod_custom",qty:1,price:24,customer:"Hasliza",notes:""},
-            {date:"2026-05-09",sku:"prod_6751",qty:4,price:4,customer:"",notes:""},
-            {date:"2026-05-10",sku:"prod_6770",qty:1,price:8,customer:"",notes:""},
-            {date:"2026-05-11",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
-            {date:"2026-05-14",sku:"prod_6760",qty:1,price:10,customer:"",notes:""},
-            {date:"2026-05-17",sku:"prod_6736",qty:1,price:6,customer:"",notes:""},
-            {date:"2026-05-18",sku:"prod_6751",qty:2,price:4,customer:"",notes:"GAGAL",cancelled:true},
-            {date:"2026-05-19",sku:"prod_6765",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-21",sku:"prod_6718",qty:1,price:8,customer:"",notes:""},
-            {date:"2026-05-21",sku:"prod_6796",qty:1,price:8,customer:"",notes:""},
-            {date:"2026-05-23",sku:"prod_6797",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-25",sku:"prod_custom",qty:2,price:5,customer:"Fizah",notes:""},
-            {date:"2026-05-25",sku:"prod_6797",qty:2,price:5,customer:"",notes:""},
-            {date:"2026-05-26",sku:"prod_6797",qty:1,price:5,customer:"Siti",notes:""},
-            {date:"2026-05-26",sku:"prod_6714",qty:1,price:8,customer:"",notes:""},
-            {date:"2026-05-26",sku:"prod_6797",qty:2,price:5,customer:"Fizah",notes:""},
-            {date:"2026-05-26",sku:"prod_6751",qty:2,price:4,customer:"",notes:""},
-            {date:"2026-05-26",sku:"prod_6720",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-05-27",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-27",sku:"prod_6797",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-05-27",sku:"prod_6797",qty:2,price:5,customer:"KR",notes:""},
-            {date:"2026-05-27",sku:"prod_6714",qty:2,price:8,customer:"",notes:""},
-            {date:"2026-05-30",sku:"prod_6797",qty:4,price:5,customer:"",notes:""},
-            {date:"2026-05-30",sku:"prod_6751",qty:2,price:4,customer:"",notes:""},
-            {date:"2026-05-30",sku:"prod_6800",qty:1,price:7,customer:"",notes:""},
-            // ---- JUNE 2026 ----
-            {date:"2026-06-01",sku:"prod_6740",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-06-02",sku:"prod_6718",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-06-02",sku:"prod_6740",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-06-02",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-06-02",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
-            {date:"2026-06-03",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-06-03",sku:"prod_6751",qty:1,price:4,customer:"",notes:""},
-            {date:"2026-06-07",sku:"prod_6751",qty:1,price:4,customer:"",notes:""},
-            {date:"2026-06-07",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
-            {date:"2026-06-09",sku:"prod_6801",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-06-11",sku:"prod_6718",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-06-18",sku:"prod_6751",qty:1,price:4,customer:"",notes:""},
-            {date:"2026-06-18",sku:"prod_6802",qty:1,price:4,customer:"",notes:""},
-            {date:"2026-06-20",sku:"prod_6766",qty:2,price:5,customer:"",notes:""},
-            {date:"2026-06-21",sku:"prod_6803",qty:1,price:13,customer:"",notes:""},
-            {date:"2026-06-21",sku:"prod_6797",qty:1,price:5,customer:"Izah",notes:""},
-            {date:"2026-06-21",sku:"prod_6797",qty:2,price:5,customer:"",notes:""},
-            {date:"2026-06-21",sku:"prod_6804",qty:1,price:5,customer:"Siti Fatimah",notes:""},
-            {date:"2026-06-21",sku:"prod_6801",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-06-21",sku:"prod_6741",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-06-24",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
-            {date:"2026-06-25",sku:"prod_6797",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-06-25",sku:"prod_6797",qty:1,price:5,customer:"Suzie",notes:""},
-            {date:"2026-06-27",sku:"prod_6790",qty:1,price:10,customer:"",notes:""},
-            {date:"2026-06-27",sku:"prod_6797",qty:1,price:5,customer:"",notes:""},
-            // ---- JULY 2026 (partial month) ----
-            {date:"2026-07-02",sku:"prod_6770",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-07-04",sku:"prod_6751",qty:2,price:4,customer:"",notes:""},
-            {date:"2026-07-05",sku:"prod_6751",qty:4,price:4,customer:"",notes:""},
-            {date:"2026-07-07",sku:"prod_6731",qty:1,price:4,customer:"",notes:""},
-            {date:"2026-07-07",sku:"prod_6725",qty:1,price:3,customer:"",notes:""},
-            {date:"2026-07-09",sku:"prod_6725",qty:2,price:3,customer:"",notes:""},
-            {date:"2026-07-11",sku:"prod_6797",qty:2,price:5,customer:"",notes:""},
-            {date:"2026-07-11",sku:"prod_6740",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-07-11",sku:"prod_6766",qty:1,price:5,customer:"",notes:""},
-            {date:"2026-07-13",sku:"prod_6742",qty:2,price:5,customer:"",notes:""},
-            {date:"2026-07-14",sku:"prod_6803",qty:1,price:13,customer:"",notes:""},
-            {date:"2026-07-14",sku:"prod_6805",qty:2,price:7,customer:"",notes:""},
-            {date:"2026-07-14",sku:"prod_6800",qty:1,price:7,customer:"",notes:""},
-            {date:"2026-07-14",sku:"prod_6751",qty:1,price:4,customer:"",notes:""}
-        ];
-
-        function buildSeedSales(){
-            const nameOf = id => (SEED_PRODUCTS.find(p=>p.id===id)||{}).name || id;
-            return SEED_SALES_RAW.map((s,i)=>({
-                id: "seed_sale_" + (i+1),
-                productId: s.sku,
-                productName: nameOf(s.sku),
-                qty: s.qty,
-                price: s.price,
-                total: +(s.qty*s.price).toFixed(2),
-                customer: s.customer || "",
-                notes: s.notes || "",
-                date: new Date(s.date + "T12:00:00").toISOString(),
-                cancelled: !!s.cancelled
-            }));
-        }
-
-        // ===================== STATE =====================
-        let products = JSON.parse(localStorage.getItem('bellebn_products')) || [];
-        let sales = JSON.parse(localStorage.getItem('bellebn_sales')) || [];
-        let xp = parseInt(localStorage.getItem('bellebn_xp')) || 0;
-        let level = parseInt(localStorage.getItem('bellebn_level')) || 1;
-        let salesToday = parseInt(localStorage.getItem('bellebn_salesToday')) || 0;
-        let lastSalesDate = localStorage.getItem('bellebn_lastSalesDate') || '';
-        let priceHistory = JSON.parse(localStorage.getItem('bellebn_priceHistory')) || [];
-        let deferredPrompt = null;
-
-        const XP_PER_LEVEL = 200;
-        const ACHIEVEMENTS = [
-            { id: 'first_sale', name: 'First Bloom', desc: 'Made your first sale', xp: 50, check: () => activeSales().length >= 1 },
-            { id: 'ten_sales', name: 'Bouquet', desc: '10 sales completed', xp: 100, check: () => activeSales().length >= 10 },
-            { id: 'fifty_sales', name: 'Garden Keeper', desc: '50 sales completed', xp: 300, check: () => activeSales().length >= 50 },
-            { id: 'hundred_sales', name: 'Floral Empire', desc: '100 sales completed', xp: 500, check: () => activeSales().length >= 100 },
-            { id: 'low_stock_master', name: 'Stock Whisperer', desc: 'Restocked a low item', xp: 30, check: () => false },
-            { id: 'price_tracker', name: 'Market Analyst', desc: 'Tracked prices for 30 days', xp: 100, check: () => priceHistory.length >= 30 }
-        ];
-        let unlockedAchievements = JSON.parse(localStorage.getItem('bellebn_achievements')) || [];
-
-        function activeSales(){ return sales.filter(s => !s.cancelled); }
-        function fmtMargin(p){
-            const margin = p.price - (p.cost||0) - (p.shipping||0);
-            const pct = p.price > 0 ? Math.round((margin/p.price)*100) : 0;
-            return (margin>=0?'+$':'-$') + Math.abs(margin).toFixed(2) + ' margin (' + pct + '%)';
-        }
-
-        // Seed real historical data only on first-ever load (won't touch data you've already entered)
-        function seedIfEmpty(){
-            if (products && products.length) return;
-            products = SEED_PRODUCTS.map(p => ({...p}));
-            sales = buildSeedSales();
-            xp = activeSales().reduce((sum, s) => {
-                const p = products.find(x => x.id === s.productId);
-                return sum + ((p && p.xp) || 10) * s.qty;
-            }, 0);
-            level = Math.floor(xp / XP_PER_LEVEL) + 1;
-            localStorage.setItem('bellebn_products', JSON.stringify(products));
-            localStorage.setItem('bellebn_sales', JSON.stringify(sales));
-            localStorage.setItem('bellebn_xp', xp);
-            localStorage.setItem('bellebn_level', level);
-        }
-        seedIfEmpty();
-
-        // ===================== INIT =====================
-        function init() {
-            createPetals();
-            checkNewDay();
-            renderProducts();
-            updateStats();
-            updatePriceTracker();
-            updateLevel();
-            checkAchievements();
-            setupEventListeners();
-            setupPWA();
-            setupTheme();
-        }
-
-        function createPetals() {
-            const container = document.getElementById('petals');
-            const colors = ['#FFB6C1', '#FFC0CB', '#DDA0DD', '#E6E6FA'];
-            for (let i = 0; i < 8; i++) {
-                const petal = document.createElement('div');
-                petal.className = 'petal';
-                petal.style.left = Math.random() * 100 + 'vw';
-                petal.style.width = (6 + Math.random() * 8) + 'px';
-                petal.style.height = (3 + Math.random() * 4) + 'px';
-                petal.style.background = colors[Math.floor(Math.random() * colors.length)];
-                petal.style.borderRadius = '50%';
-                petal.style.animationDuration = (8 + Math.random() * 12) + 's';
-                petal.style.animationDelay = (Math.random() * 10) + 's';
-                container.appendChild(petal);
-            }
-        }
-
-        function checkNewDay() {
-            const today = new Date().toDateString();
-            if (lastSalesDate !== today) {
-                salesToday = 0;
-                lastSalesDate = today;
-                localStorage.setItem('bellebn_salesToday', '0');
-                localStorage.setItem('bellebn_lastSalesDate', today);
-            }
-        }
-
-        // ===================== THEME =====================
-        function setupTheme() {
-            const saved = localStorage.getItem('bellebn_theme');
-            if (saved === 'dark') document.body.setAttribute('data-theme', 'dark');
-            document.getElementById('themeToggle').addEventListener('click', () => {
-                const isDark = document.body.hasAttribute('data-theme');
-                if (isDark) {
-                    document.body.removeAttribute('data-theme');
-                    localStorage.setItem('bellebn_theme', 'light');
-                } else {
-                    document.body.setAttribute('data-theme', 'dark');
-                    localStorage.setItem('bellebn_theme', 'dark');
-                }
-            });
-        }
-
-        // ===================== RENDERING =====================
-        function renderProducts(filter = '') {
-            const list = document.getElementById('productList');
-            const filtered = products.filter(p => 
-                p.name.toLowerCase().includes(filter.toLowerCase()) ||
-                (p.category && p.category.toLowerCase().includes(filter.toLowerCase()))
-            );
-            
-            list.innerHTML = filtered.map(p => {
-                const isLow = p.stock <= (p.lowStock || 3);
-                return `
-                    <div class="product-item ${isLow ? 'low-stock' : ''}" data-id="${p.id}">
-                        <div class="product-icon" style="background:${isLow ? '#FFF0F0' : '#FFF5FA'}">${p.icon || '📦'}</div>
-                        <div class="product-info">
-                            <div class="product-name">${escapeHtml(p.name)}</div>
-                            <div class="product-meta">
-                                ${p.category ? escapeHtml(p.category) + ' • ' : ''}
-                                <span class="${isLow ? 'low' : ''}">${p.stock} in stock${isLow ? ' ⚠️ LOW' : ''}</span>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="product-price">$${parseFloat(p.price).toFixed(2)}</div>
-                            ${(p.cost || p.shipping) ? `<div class="product-xp" style="color:${(p.price-p.cost-p.shipping)>=0?'var(--success)':'var(--danger)'}">${fmtMargin(p)}</div>` : `<div class="product-xp">+${p.xp || 10} XP</div>`}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Click to edit
-            list.querySelectorAll('.product-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const id = item.dataset.id;
-                    const p = products.find(x => x.id === id);
-                    if (p) openProductModal(p);
-                });
-            });
-        }
-
-        function updateStats() {
-            const totalStock = products.reduce((s, p) => p.id === 'prod_custom' ? s : s + (parseInt(p.stock) || 0), 0);
-            const totalRev = activeSales().reduce((s, sale) => s + (parseFloat(sale.total) || 0), 0);
-            const totalProfit = activeSales().reduce((s, sale) => {
-                const p = products.find(x => x.id === sale.productId);
-                const unitCost = p ? (parseFloat(p.cost) || 0) + (parseFloat(p.shipping) || 0) : 0;
-                return s + (sale.price - unitCost) * sale.qty;
-            }, 0);
-            document.getElementById('totalStock').textContent = totalStock;
-            document.getElementById('totalRevenue').textContent = '$' + totalRev.toFixed(2);
-            document.getElementById('totalProfit').textContent = '$' + totalProfit.toFixed(2);
-            document.getElementById('salesToday').textContent = salesToday;
-            document.getElementById('salesDelta').textContent = salesToday;
-            document.getElementById('totalXP').textContent = xp;
-        }
-
-        function updateLevel() {
-            const currentLevelXP = (level - 1) * XP_PER_LEVEL;
-            const nextLevelXP = level * XP_PER_LEVEL;
-            const progress = Math.min(100, ((xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100);
-            document.getElementById('levelBadge').textContent = 'LV.' + level;
-            document.getElementById('xpFill').style.width = progress + '%';
-            document.getElementById('xpText').textContent = Math.round(progress) + '%';
-        }
-
-        function addXP(amount) {
-            xp += amount;
-            const oldLevel = level;
-            level = Math.floor(xp / XP_PER_LEVEL) + 1;
-            localStorage.setItem('bellebn_xp', xp);
-            localStorage.setItem('bellebn_level', level);
-            updateLevel();
-            updateStats();
-            if (level > oldLevel) {
-                showToast(`🎉 Level Up! You are now LV.${level}`);
-            }
-        }
-
-        // ===================== PRICE TRACKER =====================
-        function updatePriceTracker() {
-            const priced = products.filter(p => p.id !== 'prod_custom');
-            if (priced.length === 0) return;
-            const avgPrice = priced.reduce((s, p) => s + parseFloat(p.price || 0), 0) / priced.length;
-            
-            // Record price history
-            const today = new Date().toISOString().split('T')[0];
-            const lastEntry = priceHistory[priceHistory.length - 1];
-            if (!lastEntry || lastEntry.date !== today) {
-                priceHistory.push({ date: today, price: avgPrice });
-                if (priceHistory.length > 30) priceHistory.shift();
-                localStorage.setItem('bellebn_priceHistory', JSON.stringify(priceHistory));
-            } else {
-                lastEntry.price = avgPrice;
-                localStorage.setItem('bellebn_priceHistory', JSON.stringify(priceHistory));
-            }
-
-            document.getElementById('avgPrice').textContent = '$' + avgPrice.toFixed(2);
-            
-            const prev = priceHistory.length > 1 ? priceHistory[priceHistory.length - 2].price : avgPrice;
-            const change = avgPrice - prev;
-            const changeEl = document.getElementById('priceChange');
-            if (change >= 0) {
-                changeEl.textContent = '▲ +$' + change.toFixed(2) + ' from last record';
-                changeEl.style.color = 'var(--success)';
-            } else {
-                changeEl.textContent = '▼ -$' + Math.abs(change).toFixed(2) + ' from last record';
-                changeEl.style.color = 'var(--danger)';
-            }
-
-            drawChart();
-        }
-
-        function drawChart() {
-            if (priceHistory.length < 2) return;
-            const prices = priceHistory.map(h => h.price);
-            const min = Math.min(...prices) * 0.95;
-            const max = Math.max(...prices) * 1.05;
-            const range = max - min || 1;
-            
-            const width = 240;
-            const height = 100;
-            const stepX = width / (prices.length - 1);
-            
-            let lineD = '';
-            let areaD = '';
-            prices.forEach((p, i) => {
-                const x = i * stepX;
-                const y = height - ((p - min) / range) * height;
-                if (i === 0) {
-                    lineD += `M ${x} ${y}`;
-                    areaD += `M ${x} ${height} L ${x} ${y}`;
-                } else {
-                    lineD += ` L ${x} ${y}`;
-                    areaD += ` L ${x} ${y}`;
-                }
-            });
-            areaD += ` L ${width} ${height} Z`;
-            
-            document.getElementById('chartLinePath').setAttribute('d', lineD);
-            document.getElementById('chartAreaPath').setAttribute('d', areaD);
-            
-            const lastX = width;
-            const lastY = height - ((prices[prices.length - 1] - min) / range) * height;
-            const dot = document.getElementById('chartDot');
-            dot.setAttribute('cx', lastX);
-            dot.setAttribute('cy', lastY);
-        }
-
-        // ===================== MODALS =====================
-        let editingProduct = null;
-        let stockMode = 'in'; // 'in' or 'out'
-
-        function openProductModal(product = null) {
-            editingProduct = product;
-            document.getElementById('productModalTitle').textContent = product ? '✏️ Edit Product' : '🧴 Add Product';
-            document.getElementById('prodName').value = product ? product.name : '';
-            document.getElementById('prodCategory').value = product ? (product.category || '') : '';
-            document.getElementById('prodIcon').value = product ? (product.icon || '') : '';
-            document.getElementById('prodPrice').value = product ? product.price : '';
-            document.getElementById('prodStock').value = product ? product.stock : '';
-            document.getElementById('prodLowStock').value = product ? (product.lowStock || 3) : '3';
-            document.getElementById('prodXP').value = product ? (product.xp || 10) : '10';
-            document.getElementById('prodCost').value = product ? (product.cost || '') : '';
-            document.getElementById('prodShipping').value = product ? (product.shipping || '') : '';
-            document.getElementById('productModal').classList.add('active');
-        }
-
-        function closeProductModal() {
-            document.getElementById('productModal').classList.remove('active');
-            editingProduct = null;
-        }
-
-        function saveProduct() {
-            const name = document.getElementById('prodName').value.trim();
-            if (!name) { showToast('❌ Product name is required'); return; }
-            
-            const data = {
-                id: editingProduct ? editingProduct.id : 'prod_' + Date.now(),
-                name,
-                category: document.getElementById('prodCategory').value.trim(),
-                icon: document.getElementById('prodIcon').value.trim() || '📦',
-                price: parseFloat(document.getElementById('prodPrice').value) || 0,
-                stock: parseInt(document.getElementById('prodStock').value) || 0,
-                lowStock: parseInt(document.getElementById('prodLowStock').value) || 3,
-                xp: parseInt(document.getElementById('prodXP').value) || 10,
-                cost: parseFloat(document.getElementById('prodCost').value) || 0,
-                shipping: parseFloat(document.getElementById('prodShipping').value) || 0,
-                createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString()
-            };
-            
-            if (editingProduct) {
-                const idx = products.findIndex(p => p.id === editingProduct.id);
-                if (idx >= 0) products[idx] = data;
-            } else {
-                products.push(data);
-                addXP(20); // XP for adding product
-            }
-            
-            localStorage.setItem('bellebn_products', JSON.stringify(products));
-            renderProducts(document.getElementById('searchBox').value);
-            updateStats();
-            updatePriceTracker();
-            closeProductModal();
-            showToast(editingProduct ? '✅ Product updated!' : '🌸 Product added!');
-        }
-
-        function populateProductSelect(selectId) {
-            const select = document.getElementById(selectId);
-            select.innerHTML = products.map(p => 
-                `<option value="${p.id}">${escapeHtml(p.name)} (${p.stock} in stock)</option>`
-            ).join('');
-        }
-
-        function openSaleModal() {
-            if (products.length === 0) { showToast('❌ Add products first!'); return; }
-            populateProductSelect('saleProduct');
-            const selected = products[0];
-            document.getElementById('salePrice').value = selected.price;
-            document.getElementById('saleQty').value = 1;
-            document.getElementById('saleCustomer').value = '';
-            document.getElementById('saleNotes').value = '';
-            document.getElementById('saleModal').classList.add('active');
-        }
-
-        function closeSaleModal() { document.getElementById('saleModal').classList.remove('active'); }
-
-        function confirmSale() {
-            const prodId = document.getElementById('saleProduct').value;
-            const qty = parseInt(document.getElementById('saleQty').value) || 1;
-            const price = parseFloat(document.getElementById('salePrice').value) || 0;
-            const customer = document.getElementById('saleCustomer').value.trim();
-            const notes = document.getElementById('saleNotes').value.trim();
-            
-            const product = products.find(p => p.id === prodId);
-            if (!product) return;
-            if (product.stock < qty) { showToast('❌ Not enough stock!'); return; }
-            
-            product.stock -= qty;
-            const total = price * qty;
-            
-            sales.push({
-                id: 'sale_' + Date.now(),
-                productId: prodId,
-                productName: product.name,
-                qty,
-                price,
-                total,
-                customer,
-                notes,
-                date: new Date().toISOString()
-            });
-            
-            salesToday += qty;
-            localStorage.setItem('bellebn_products', JSON.stringify(products));
-            localStorage.setItem('bellebn_sales', JSON.stringify(sales));
-            localStorage.setItem('bellebn_salesToday', salesToday);
-            
-            const xpGain = (product.xp || 10) * qty;
-            addXP(xpGain);
-            
-            renderProducts(document.getElementById('searchBox').value);
-            updateStats();
-            updatePriceTracker();
-            closeSaleModal();
-            showToast(`🎉 Sale recorded! +${xpGain} XP`);
-            checkAchievements();
-        }
-
-        function openStockModal(mode) {
-            stockMode = mode;
-            if (products.length === 0) { showToast('❌ Add products first!'); return; }
-            document.getElementById('stockModalTitle').textContent = mode === 'in' ? '📥 Stock In' : '📤 Stock Out';
-            document.getElementById('stockCostGroup').style.display = mode === 'in' ? 'block' : 'none';
-            document.getElementById('stockShippingGroup').style.display = mode === 'in' ? 'block' : 'none';
-            populateProductSelect('stockProduct');
-            document.getElementById('stockQty').value = 1;
-            document.getElementById('stockCost').value = '';
-            document.getElementById('stockModal').classList.add('active');
-        }
-
-        function closeStockModal() { document.getElementById('stockModal').classList.remove('active'); }
-
-        function confirmStock() {
-            const prodId = document.getElementById('stockProduct').value;
-            const qty = parseInt(document.getElementById('stockQty').value) || 1;
-            const product = products.find(p => p.id === prodId);
-            if (!product) return;
-            
-            if (stockMode === 'in') {
-                product.stock += qty;
-                const unitCost = document.getElementById('stockCost').value;
-                const unitShipping = document.getElementById('stockShipping').value;
-                if (unitCost !== '') product.cost = parseFloat(unitCost) || 0;
-                if (unitShipping !== '') product.shipping = parseFloat(unitShipping) || 0;
-                showToast(`📥 Stocked ${qty} ${product.name}`);
-                addXP(5);
-                if (product.stock - qty <= (product.lowStock || 3)) {
-                    unlockAchievement('low_stock_master');
-                }
-            } else {
-                if (product.stock < qty) { showToast('❌ Not enough stock!'); return; }
-                product.stock -= qty;
-                showToast(`📤 Removed ${qty} ${product.name}`);
-            }
-            
-            localStorage.setItem('bellebn_products', JSON.stringify(products));
-            renderProducts(document.getElementById('searchBox').value);
-            updateStats();
-            updatePriceTracker();
-        }
-
-        // ===================== GITHUB GIST EXPORT =====================
-        async function exportToGist() {
-            const token = document.getElementById('gistToken').value.trim();
-            if (!token) {
-                document.getElementById('gistSection').style.display = 'block';
-                showToast('🔑 Please enter your GitHub token');
-                return;
-            }
-            
-            const statusEl = document.getElementById('gistStatus');
-            statusEl.textContent = 'Uploading...';
-            statusEl.style.color = 'var(--text-muted)';
-            
-            const data = {
-                description: `Belle BN Inventory Backup — ${new Date().toLocaleString()}`,
-                public: false,
-                files: {
-                    'belle_bn_inventory.json': {
-                        content: JSON.stringify({
-                            products,
-                            sales,
-                            xp,
-                            level,
-                            priceHistory,
-                            exportedAt: new Date().toISOString()
-                        }, null, 2)
-                    },
-                    'belle_bn_sales_report.md': {
-                        content: generateMarkdownReport()
-                    }
-                }
-            };
-            
-            try {
-                const res = await fetch('https://api.github.com/gists', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                if (!res.ok) throw new Error('GitHub API error');
-                const result = await res.json();
-                statusEl.innerHTML = `✅ <a href="${result.html_url}" target="_blank" style="color:var(--lavender-deep)">View Gist</a>`;
-                showToast('📤 Exported to GitHub Gist!');
-                addXP(15);
-            } catch (e) {
-                statusEl.textContent = '❌ Upload failed. Check your token.';
-                statusEl.style.color = 'var(--danger)';
-            }
-        }
-
-        function generateMarkdownReport() {
-            const totalRev = activeSales().reduce((s, sale) => s + sale.total, 0);
-            return `# 🌸 Belle BN Sales Report
-**Generated:** ${new Date().toLocaleString()}
-
-## 📊 Summary
-| Metric | Value |
-|--------|-------|
-| Total Products | ${products.length} |
-| Total Stock | ${products.reduce((s,p) => s + p.stock, 0)} |
-| Total Sales | ${sales.length} |
-| Total Revenue | $${totalRev.toFixed(2)} |
-| Current Level | ${level} |
-| Total XP | ${xp} |
-
-## 📦 Inventory
-| Product | Category | Price | Stock | Low Alert |
-|---------|----------|-------|-------|-----------|
-${products.map(p => `| ${p.icon || '📦'} ${p.name} | ${p.category || '-'} | $${p.price} | ${p.stock} | ${p.lowStock || 3} |`).join('\n')}
-
-## 🛒 Recent Sales
-| Date | Product | Qty | Price | Total | Customer |
-|------|---------|-----|-------|-------|----------|
-${sales.slice(-20).reverse().map(s => `| ${new Date(s.date).toLocaleDateString()} | ${s.productName} | ${s.qty} | $${s.price} | $${s.total.toFixed(2)} | ${s.customer || '-'} |`).join('\n')}
-`;
-        }
-
-        // ===================== ACHIEVEMENTS =====================
-        function checkAchievements() {
-            ACHIEVEMENTS.forEach(ach => {
-                if (unlockedAchievements.includes(ach.id)) return;
-                if (ach.check()) {
-                    unlockAchievement(ach.id);
-                }
-            });
-        }
-
-        function unlockAchievement(id) {
-            if (unlockedAchievements.includes(id)) return;
-            const ach = ACHIEVEMENTS.find(a => a.id === id);
-            if (!ach) return;
-            unlockedAchievements.push(id);
-            localStorage.setItem('bellebn_achievements', JSON.stringify(unlockedAchievements));
-            addXP(ach.xp);
-            showToast(`🏅 Achievement: ${ach.name}! +${ach.xp} XP`);
-        }
-
-        // ===================== PWA =====================
-        function setupPWA() {
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                document.getElementById('pwaBanner').classList.add('show');
-            });
-            
-            document.getElementById('installBtn').addEventListener('click', async () => {
-                if (!deferredPrompt) return;
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    showToast('🌸 Belle BN installed!');
-                    addXP(25);
-                }
-                deferredPrompt = null;
-                document.getElementById('pwaBanner').classList.remove('show');
-            });
-        }
-
-        // ===================== UTILITIES =====================
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function setupEventListeners() {
-            document.getElementById('themeToggle').addEventListener('click', () => {});
-            document.getElementById('addProductBtn').addEventListener('click', () => openProductModal());
-            document.getElementById('cancelProduct').addEventListener('click', closeProductModal);
-            document.getElementById('saveProduct').addEventListener('click', saveProduct);
-            document.getElementById('recordSaleBtn').addEventListener('click', openSaleModal);
-            document.getElementById('cancelSale').addEventListener('click', closeSaleModal);
-            document.getElementById('confirmSale').addEventListener('click', confirmSale);
-            document.getElementById('stockInBtn').addEventListener('click', () => openStockModal('in'));
-            document.getElementById('stockOutBtn').addEventListener('click', () => openStockModal('out'));
-            document.getElementById('cancelStock').addEventListener('click', closeStockModal);
-            document.getElementById('confirmStock').addEventListener('click', confirmStock);
-            document.getElementById('searchBox').addEventListener('input', (e) => renderProducts(e.target.value));
-            document.getElementById('exportGistBtn').addEventListener('click', () => {
-                const section = document.getElementById('gistSection');
-                section.style.display = section.style.display === 'none' ? 'block' : 'none';
-            });
-            document.getElementById('doExportGist').addEventListener('click', exportToGist);
-            
-            document.getElementById('saleProduct').addEventListener('change', (e) => {
-                const p = products.find(x => x.id === e.target.value);
-                if (p) document.getElementById('salePrice').value = p.price;
-            });
-            
-            document.querySelectorAll('.modal-overlay').forEach(overlay => {
-                overlay.addEventListener('click', (e) => {
-                    if (e.target === overlay) overlay.classList.remove('active');
-                });
-            });
-        }
-
-        // Register Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .then((registration) => {
-        console.log('SW registered:', registration.scope);
-      })
-      .catch((error) => {
-        console.log('SW registration failed:', error);
-      });
-  });
+function getLevel(xp) {
+  let lvl = 1, req = 500, total = 0;
+  while (xp >= total + req) { total += req; lvl++; req = Math.floor(req * 1.4); }
+  return { level: lvl, current: xp - total, next: req, totalReq: total + req, percent: ((xp - total) / req) * 100 };
 }
-        init();
-    })();
-    </script>
+
+function getRank(xp) {
+  for (let i = RANKS.length - 1; i >= 0; i--) {
+    if (xp >= RANKS[i].min) return RANKS[i];
+  }
+  return RANKS[0];
+}
+
+function formatDate(d) {
+  const date = new Date(d);
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function formatCurrency(n) {
+  return '$' + parseFloat(n).toFixed(2);
+}
+
+// ========================
+// SEED DATA FROM SALES REPORTS
+// ========================
+const SEED_PRODUCTS = [
+  { id: '6740', name: 'G2G Niacinamide Facial Wash (Pink)', sku: '6740', category: 'Cleanser', stock: 5, price: 7, cost: 3.5, minStock: 3 },
+  { id: '6718', name: 'G2G Deep Pore Facial Wash Black', sku: '6718', category: 'Cleanser', stock: 4, price: 7, cost: 3.5, minStock: 3 },
+  { id: '6770', name: 'G2G Glycolic Acid Facial Wash', sku: '6770', category: 'Cleanser', stock: 3, price: 7, cost: 3.5, minStock: 3 },
+  { id: '6751', name: 'Bai Yao Lang 20G', sku: '6751', category: 'Healthcare', stock: 6, price: 4, cost: 1.5, minStock: 5 },
+  { id: '6725', name: 'Huatuo Bai Fu Ling', sku: '6725', category: 'Healthcare', stock: 8, price: 3, cost: 1.2, minStock: 5 },
+  { id: '6766', name: 'Bai Fu Ling 22G Pink', sku: '6766', category: 'Healthcare', stock: 3, price: 5, cost: 2, minStock: 3 },
+  { id: '6741', name: 'West Month Tumeric Cream', sku: '6741', category: 'Beauty Care Product', stock: 4, price: 5, cost: 2, minStock: 3 },
+  { id: '6797', name: 'Tumeric Kojic Soap', sku: '6797', category: 'Soap', stock: 2, price: 5, cost: 1.8, minStock: 5 },
+  { id: '6742', name: 'West&Month Tumeric Serum', sku: '6742', category: 'Serum', stock: 3, price: 5, cost: 2, minStock: 3 },
+  { id: '6803', name: 'Sunscreen Wawa', sku: '6803', category: 'Sunscreen', stock: 2, price: 13, cost: 6, minStock: 2 },
+  { id: '6805', name: 'PDRN Moisturizer', sku: '6805', category: 'Moisturizer', stock: 3, price: 7, cost: 3, minStock: 3 },
+  { id: '6800', name: 'G2G PDRN Serum', sku: '6800', category: 'Serum', stock: 2, price: 7, cost: 3, minStock: 3 },
+  { id: '6801', name: 'Tumeric Toner', sku: '6801', category: 'Toner', stock: 2, price: 5, cost: 2, minStock: 3 },
+  { id: '6802', name: 'Withyou Cream', sku: '6802', category: 'Beauty Care Product', stock: 2, price: 4, cost: 1.5, minStock: 3 },
+  { id: '6790', name: 'G2G Setting Spray', sku: '6790', category: 'Setting Spray', stock: 1, price: 10, cost: 4, minStock: 2 },
+  { id: '6731', name: "Panda's Beauty Astralagus Cream", sku: '6731', category: 'Beauty Care Product', stock: 2, price: 4, cost: 1.5, minStock: 3 },
+  { id: '6714', name: 'Ximonth Massage Gel', sku: '6714', category: 'Gel', stock: 1, price: 8, cost: 3, minStock: 2 },
+  { id: '6736', name: 'Ouhoe NMN Hair Roller', sku: '6736', category: 'Hair', stock: 1, price: 6, cost: 2.5, minStock: 2 },
+  { id: '6713', name: 'Eelhoe Rosemary Essential Oil', sku: '6713', category: 'Oil', stock: 1, price: 6, cost: 2.5, minStock: 2 },
+  { id: '6744', name: 'G2G Centella Moisturizer', sku: '6744', category: 'Moisturizer', stock: 1, price: 7, cost: 3, minStock: 3 },
+  { id: '6798', name: 'Jaysuing Tumeric Cleanser', sku: '6798', category: 'Cleanser', stock: 1, price: 5, cost: 2, minStock: 3 },
+  { id: '6799', name: 'Tumbler', sku: '6799', category: 'Accessory', stock: 0, price: 10, cost: 4, minStock: 0 },
+  { id: '6760', name: 'G2G Micellar Water', sku: '6760', category: 'Cleanser', stock: 1, price: 10, cost: 4, minStock: 2 },
+  { id: '6765', name: 'Tumeric Cleanser', sku: '6765', category: 'Cleanser', stock: 1, price: 5, cost: 2, minStock: 3 },
+  { id: '6722', name: 'JCKOO Hair Oil', sku: '6722', category: 'Hair', stock: 0, price: 6, cost: 2.5, minStock: 0 },
+  { id: '6791', name: 'G2G Body Serum Set', sku: '6791', category: 'Serum', stock: 0, price: 10, cost: 4, minStock: 0 },
+  { id: '6737', name: 'BA DU PILE KANG (20G)', sku: '6737', category: 'Healthcare', stock: 0, price: 5, cost: 2, minStock: 0 },
+  { id: '6788', name: 'West Month Tumeric Face Soap', sku: '6788', category: 'Soap', stock: 0, price: 4, cost: 1.5, minStock: 0 },
+  { id: '6756', name: 'G2G Flawless Blurring Skin Tint', sku: '6756', category: 'Makeup', stock: 0, price: 8, cost: 3.5, minStock: 0 },
+  { id: '6796', name: 'G2G Cleansing Oil', sku: '6796', category: 'Cleanser', stock: 0, price: 8, cost: 3.5, minStock: 0 },
+  { id: '6776', name: 'GMEELAN Peptide B.Sunscreen', sku: '6776', category: 'Sunscreen', stock: 0, price: 13, cost: 6, minStock: 0 },
+  { id: '6793', name: 'Hoygi Glow Wash', sku: '6793', category: 'Cleanser', stock: 0, price: 5, cost: 2, minStock: 0 },
+  { id: '6720', name: 'G2G Glycolic Peeling Gel', sku: '6720', category: 'Exfoliator', stock: 0, price: 7, cost: 3, minStock: 0 },
+  { id: '6804', name: 'West Month Serum', sku: '6804', category: 'Serum', stock: 2, price: 5, cost: 2, minStock: 3 }
+];
+
+const SEED_SALES = [
+  // April 2026 ($247)
+  { id: 's001', date: '2026-04-01', customer: 'Walk-in', productId: '6740', product: 'G2G Niacinamide Facial Wash (Pink)', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's002', date: '2026-04-02', customer: 'Walk-in', productId: '6722', product: 'JCKOO Hair Oil', qty: 1, price: 6, total: 6, status: 'paid' },
+  { id: 's003', date: '2026-04-04', customer: 'Walk-in', productId: '6791', product: 'G2G Body Serum Set', qty: 1, price: 10, total: 10, status: 'paid' },
+  { id: 's004', date: '2026-04-05', customer: 'Walk-in', productId: '6737', product: 'BA DU PILE KANG (20G)', qty: 4, price: 5, total: 20, status: 'paid' },
+  { id: 's005', date: '2026-04-07', customer: 'Walk-in', productId: '6765', product: 'Tumeric Cleanser', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's006', date: '2026-04-08', customer: 'Walk-in', productId: '6741', product: 'West Month Tumeric Cream', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's007', date: '2026-04-08', customer: 'Walk-in', productId: '6788', product: 'West Month Tumeric Face Soap', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's008', date: '2026-04-08', customer: 'Walk-in', productId: '6718', product: 'G2G Deep Pore Facial Wash Black', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's009', date: '2026-04-08', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 2, price: 4, total: 8, status: 'paid' },
+  { id: 's010', date: '2026-04-08', customer: 'Walk-in', productId: '6765', product: 'Tumeric Cleanser', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's011', date: '2026-04-09', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's012', date: '2026-04-09', customer: 'Walk-in', productId: '6756', product: 'G2G Flawless Blurring Skin Tint', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's013', date: '2026-04-11', customer: 'NURATUL', productId: 'misc', product: 'Bundle Sale', qty: 1, price: 12, total: 12, status: 'paid' },
+  { id: 's014', date: '2026-04-12', customer: 'MARSITA', productId: 'misc', product: 'Bundle Sale', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's015', date: '2026-04-12', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's016', date: '2026-04-14', customer: 'Walk-in', productId: '6796', product: 'G2G Cleansing Oil', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's017', date: '2026-04-14', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 2, price: 4, total: 8, status: 'paid' },
+  { id: 's018', date: '2026-04-14', customer: 'Walk-in', productId: '6740', product: 'G2G Niacinamide Facial Wash (Pink)', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's019', date: '2026-04-14', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 3, price: 3, total: 9, status: 'paid' },
+  { id: 's020', date: '2026-04-14', customer: 'Walk-in', productId: '6776', product: 'GMEELAN Peptide B.Sunscreen', qty: 1, price: 13, total: 13, status: 'paid' },
+  { id: 's021', date: '2026-04-14', customer: 'Walk-in', productId: '6766', product: 'Bai Fu Ling 22G Pink', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's022', date: '2026-04-15', customer: 'Walk-in', productId: '6788', product: 'West Month Tumeric Face Soap', qty: 3, price: 4, total: 12, status: 'paid' },
+  { id: 's023', date: '2026-04-15', customer: 'Walk-in', productId: '6766', product: 'Bai Fu Ling 22G Pink', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's024', date: '2026-04-15', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's025', date: '2026-04-20', customer: 'Walk-in', productId: '6793', product: 'Hoygi Glow Wash', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's026', date: '2026-04-20', customer: 'Walk-in', productId: '6765', product: 'Tumeric Cleanser', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's027', date: '2026-04-20', customer: 'Walk-in', productId: '6776', product: 'GMEELAN Peptide B.Sunscreen', qty: 1, price: 13, total: 13, status: 'paid' },
+  { id: 's028', date: '2026-04-21', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 5, price: 4, total: 20, status: 'paid' },
+  { id: 's029', date: '2026-04-22', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's030', date: '2026-04-25', customer: 'Walk-in', productId: '6714', product: 'Ximonth Massage Gel', qty: 1, price: 8, total: 8, status: 'paid' },
+
+  // May 2026 ($380)
+  { id: 's031', date: '2026-05-02', customer: 'Walk-in', productId: '6714', product: 'Ximonth Massage Gel', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's032', date: '2026-05-02', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 2, price: 4, total: 8, status: 'paid' },
+  { id: 's033', date: '2026-05-02', customer: 'Walk-in', productId: '6741', product: 'West Month Tumeric Cream', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's034', date: '2026-05-03', customer: 'AUFIYA', productId: '6797', product: 'Tumeric Kojic Soap', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's035', date: '2026-05-03', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 3, price: 3, total: 9, status: 'paid' },
+  { id: 's036', date: '2026-05-03', customer: 'Walk-in', productId: '6766', product: 'Bai Fu Ling 22G Pink', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's037', date: '2026-05-03', customer: 'Walk-in', productId: '6741', product: 'West Month Tumeric Cream', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's038', date: '2026-05-03', customer: 'Walk-in', productId: '6742', product: 'West&Month Tumeric Serum', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's039', date: '2026-05-04', customer: 'Walk-in', productId: '6736', product: 'Ouhoe NMN Hair Roller', qty: 1, price: 6, total: 6, status: 'paid' },
+  { id: 's040', date: '2026-05-04', customer: 'Walk-in', productId: '6713', product: 'Eelhoe Rosemary Essential Oil', qty: 1, price: 6, total: 6, status: 'paid' },
+  { id: 's041', date: '2026-05-04', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 2, price: 3, total: 6, status: 'paid' },
+  { id: 's042', date: '2026-05-04', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 3, price: 5, total: 15, status: 'paid' },
+  { id: 's043', date: '2026-05-04', customer: 'Walk-in', productId: '6744', product: 'G2G Centella Moisturizer', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's044', date: '2026-05-05', customer: 'Walk-in', productId: '6798', product: 'Jaysuing Tumeric Cleanser', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's045', date: '2026-05-05', customer: 'Walk-in', productId: '6742', product: 'West&Month Tumeric Serum', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's046', date: '2026-05-05', customer: 'Walk-in', productId: '6718', product: 'G2G Deep Pore Facial Wash Black', qty: 2, price: 8, total: 16, status: 'paid' },
+  { id: 's047', date: '2026-05-05', customer: 'Walk-in', productId: '6799', product: 'Tumbler', qty: 2, price: 10, total: 20, status: 'paid' },
+  { id: 's048', date: '2026-05-05', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's049', date: '2026-05-09', customer: 'HASLIZA', productId: 'misc', product: 'Bundle Sale', qty: 1, price: 24, total: 24, status: 'paid' },
+  { id: 's050', date: '2026-05-09', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 4, price: 4, total: 16, status: 'paid' },
+  { id: 's051', date: '2026-05-10', customer: 'Walk-in', productId: '6770', product: 'G2G Glycolic Acid Facial Wash', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's052', date: '2026-05-11', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 1, price: 3, total: 3, status: 'paid' },
+  { id: 's053', date: '2026-05-14', customer: 'Walk-in', productId: '6760', product: 'G2G Micellar Water', qty: 1, price: 10, total: 10, status: 'paid' },
+  { id: 's054', date: '2026-05-17', customer: 'Walk-in', productId: '6736', product: 'Ouhoe NMN Hair Roller', qty: 1, price: 6, total: 6, status: 'paid' },
+  { id: 's055', date: '2026-05-18', customer: 'GAGAL', productId: '6751', product: 'Bai Yao Lang 20G', qty: 2, price: 4, total: 8, status: 'paid' },
+  { id: 's056', date: '2026-05-19', customer: 'Walk-in', productId: '6765', product: 'Tumeric Cleanser', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's057', date: '2026-05-21', customer: 'Walk-in', productId: '6718', product: 'G2G Deep Pore Facial Wash Black', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's058', date: '2026-05-21', customer: 'Walk-in', productId: '6796', product: 'G2G Cleansing Oil', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's059', date: '2026-05-23', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's060', date: '2026-05-25', customer: 'FIZAH', productId: '6797', product: 'Tumeric Kojic Soap', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's061', date: '2026-05-25', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's062', date: '2026-05-26', customer: 'SITI', productId: '6797', product: 'Tumeric Kojic Soap', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's063', date: '2026-05-26', customer: 'Walk-in', productId: '6714', product: 'Ximonth Massage Gel', qty: 1, price: 8, total: 8, status: 'paid' },
+  { id: 's064', date: '2026-05-26', customer: 'FIZAH', productId: '6797', product: 'Tumeric Kojic Soap', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's065', date: '2026-05-26', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 2, price: 4, total: 8, status: 'paid' },
+  { id: 's066', date: '2026-05-26', customer: 'Walk-in', productId: '6720', product: 'G2G Glycolic Peeling Gel', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's067', date: '2026-05-27', customer: 'Walk-in', productId: '6741', product: 'West Month Tumeric Cream', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's068', date: '2026-05-27', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's069', date: '2026-05-27', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's070', date: '2026-05-27', customer: 'KR', productId: '6714', product: 'Ximonth Massage Gel', qty: 2, price: 8, total: 16, status: 'paid' },
+  { id: 's071', date: '2026-05-30', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 4, price: 5, total: 20, status: 'paid' },
+  { id: 's072', date: '2026-05-30', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 2, price: 4, total: 8, status: 'paid' },
+  { id: 's073', date: '2026-05-30', customer: 'Walk-in', productId: '6800', product: 'G2G PDRN Serum', qty: 1, price: 7, total: 7, status: 'paid' },
+
+  // June 2026 ($151)
+  { id: 's074', date: '2026-06-01', customer: 'Walk-in', productId: '6740', product: 'G2G Niacinamide Facial Wash (Pink)', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's075', date: '2026-06-02', customer: 'Walk-in', productId: '6718', product: 'G2G Deep Pore Facial Wash Black', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's076', date: '2026-06-02', customer: 'Walk-in', productId: '6740', product: 'G2G Niacinamide Facial Wash (Pink)', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's077', date: '2026-06-02', customer: 'Walk-in', productId: '6741', product: 'West Month Tumeric Cream', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's078', date: '2026-06-02', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 1, price: 3, total: 3, status: 'paid' },
+  { id: 's079', date: '2026-06-03', customer: 'Walk-in', productId: '6741', product: 'West Month Tumeric Cream', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's080', date: '2026-06-03', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's081', date: '2026-06-07', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's082', date: '2026-06-07', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 1, price: 3, total: 3, status: 'paid' },
+  { id: 's083', date: '2026-06-09', customer: 'Walk-in', productId: '6801', product: 'Tumeric Toner', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's084', date: '2026-06-11', customer: 'Walk-in', productId: '6718', product: 'G2G Deep Pore Facial Wash Black', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's085', date: '2026-06-18', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's086', date: '2026-06-18', customer: 'Walk-in', productId: '6802', product: 'Withyou Cream', qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's087', date: '2026-06-20', customer: 'Walk-in', productId: '6766', product: 'Bai Fu Ling 22G Pink', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's088', date: '2026-06-21', customer: 'Walk-in', productId: '6803', product: 'Sunscreen Wawa', qty: 1, price: 13, total: 13, status: 'paid' },
+  { id: 's089', date: '2026-06-21', customer: 'IZAH', productId: '6797', product: 'Tumeric Kojic Soap', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's090', date: '2026-06-21', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's091', date: '2026-06-21', customer: 'SITI FATIMAH', productId: '6797', product: 'Tumeric Kojic Soap', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's092', date: '2026-06-21', customer: 'Walk-in', productId: '6804', product: 'West Month Serum', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's093', date: '2026-06-21', customer: 'Walk-in', productId: '6801', product: 'Tumeric Toner', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's094', date: '2026-06-21', customer: 'Walk-in', productId: '6741', product: 'West Month Tumeric Cream', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's095', date: '2026-06-24', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 1, price: 3, total: 3, status: 'paid' },
+  { id: 's096', date: '2026-06-25', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's097', date: '2026-06-25', customer: 'SUZIE', productId: '6797', product: 'Tumeric Kojic Soap', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's098', date: '2026-06-27', customer: 'Walk-in', productId: '6790', product: 'G2G Setting Spray', qty: 1, price: 10, total: 10, status: 'paid' },
+  { id: 's099', date: '2026-06-27', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 1, price: 5, total: 5, status: 'paid' },
+
+  // July 2026 ($114)
+  { id: 's100', date: '2026-07-02', customer: 'Walk-in', productId: '6770', product: 'G2G Glycolic Acid Facial Wash', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's101', date: '2026-07-04', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 2, price: 4, total: 8, status: 'paid' },
+  { id: 's102', date: '2026-07-05', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 4, price: 4, total: 16, status: 'paid' },
+  { id: 's103', date: '2026-07-07', customer: 'Walk-in', productId: '6731', product: "Panda's Beauty Astralagus Cream", qty: 1, price: 4, total: 4, status: 'paid' },
+  { id: 's104', date: '2026-07-07', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 1, price: 3, total: 3, status: 'paid' },
+  { id: 's105', date: '2026-07-09', customer: 'Walk-in', productId: '6725', product: 'Huatuo Bai Fu Ling', qty: 2, price: 3, total: 6, status: 'paid' },
+  { id: 's106', date: '2026-07-11', customer: 'Walk-in', productId: '6797', product: 'Tumeric Kojic Soap', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's107', date: '2026-07-11', customer: 'Walk-in', productId: '6740', product: 'G2G Niacinamide Facial Wash (Pink)', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's108', date: '2026-07-11', customer: 'Walk-in', productId: '6766', product: 'Bai Fu Ling 22G Pink', qty: 1, price: 5, total: 5, status: 'paid' },
+  { id: 's109', date: '2026-07-13', customer: 'Walk-in', productId: '6742', product: 'West&Month Tumeric Serum', qty: 2, price: 5, total: 10, status: 'paid' },
+  { id: 's110', date: '2026-07-14', customer: 'Walk-in', productId: '6803', product: 'Sunscreen Wawa', qty: 1, price: 13, total: 13, status: 'paid' },
+  { id: 's111', date: '2026-07-14', customer: 'Walk-in', productId: '6805', product: 'PDRN Moisturizer', qty: 2, price: 7, total: 14, status: 'paid' },
+  { id: 's112', date: '2026-07-14', customer: 'Walk-in', productId: '6800', product: 'G2G PDRN Serum', qty: 1, price: 7, total: 7, status: 'paid' },
+  { id: 's113', date: '2026-07-14', customer: 'Walk-in', productId: '6751', product: 'Bai Yao Lang 20G', qty: 1, price: 4, total: 4, status: 'paid' }
+];
+
+// ========================
+// APP STATE
+// ========================
+let state = {
+  products: [...SEED_PRODUCTS],
+  sales: [...SEED_SALES],
+  xp: 0,
+  streak: 0,
+  lastSaleDate: null,
+  earnedBadges: [],
+  questProgress: {},
+  theme: 'light',
+  view: 'dashboard',
+  filterCategory: 'All',
+  searchQuery: '',
+  modal: null,
+  toastQueue: []
+};
+
+function initState() {
+  // Calculate initial XP from sales
+  state.xp = state.sales.reduce((sum, s) => sum + Math.floor(s.total * 2), 0);
+  state.xp += state.sales.length * 10; // bonus per sale
+  state.lastSaleDate = state.sales.length > 0 ? state.sales[state.sales.length - 1].date : null;
+  state.streak = calculateStreak();
+  checkBadges(true);
+}
+
+function calculateStreak() {
+  if (!state.sales.length) return 0;
+  const dates = [...new Set(state.sales.map(s => s.date))].sort();
+  let streak = 1;
+  for (let i = dates.length - 1; i > 0; i--) {
+    const d1 = new Date(dates[i]), d0 = new Date(dates[i-1]);
+    const diff = (d1 - d0) / (1000 * 60 * 60 * 24);
+    if (diff <= 2) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function getStats() {
+  const totalSales = state.sales.reduce((s, sale) => s + sale.total, 0);
+  const productCounts = {};
+  const dailySales = {};
+  const monthlySales = {};
+  const customerSpend = {};
+  let weekendSales = 0;
+
+  state.sales.forEach(sale => {
+    productCounts[sale.product] = (productCounts[sale.product] || 0) + sale.qty;
+    dailySales[sale.date] = (dailySales[sale.date] || 0) + sale.total;
+    const ym = sale.date.substring(0, 7);
+    monthlySales[ym] = (monthlySales[ym] || 0) + sale.total;
+    if (sale.customer !== 'Walk-in') {
+      customerSpend[sale.customer] = (customerSpend[sale.customer] || 0) + sale.total;
+    }
+    const d = new Date(sale.date);
+    if (d.getDay() === 0 || d.getDay() === 6) weekendSales++;
+  });
+
+  const maxDailySales = Math.max(0, ...Object.values(dailySales));
+  const totalQty = state.sales.reduce((s, sale) => s + sale.qty, 0);
+  const uniqueCustomers = Object.keys(customerSpend).length;
+  const topCustomer = Object.entries(customerSpend).sort((a,b) => b[1]-a[1])[0];
+
+  return { totalSales, productCounts, dailySales, monthlySales, maxDailySales, totalQty, weekendSales, uniqueCustomers, topCustomer, customerSpend };
+}
+
+function checkBadges(silent = false) {
+  const stats = getStats();
+  const newlyEarned = [];
+  BADGES.forEach(badge => {
+    if (!state.earnedBadges.includes(badge.id) && badge.condition(stats)) {
+      state.earnedBadges.push(badge.id);
+      newlyEarned.push(badge);
+      state.xp += 100;
+    }
+  });
+  if (!silent && newlyEarned.length > 0) {
+    newlyEarned.forEach((badge, i) => {
+      setTimeout(() => showAchievementPopup(badge), i * 800);
+      setTimeout(() => showToast(`Badge Unlocked: ${badge.name} +100 XP!`, 'badge-earned'), i * 800 + 300);
+    });
+  }
+  return newlyEarned;
+}
+
+function addXP(amount, reason) {
+  const oldLevel = getLevel(state.xp);
+  state.xp += amount;
+  const newLevel = getLevel(state.xp);
+  if (newLevel.level > oldLevel.level) {
+    setTimeout(() => {
+      showToast(`LEVEL UP! You are now Level ${newLevel.level}!`, 'levelup');
+      document.querySelector('.level-pill')?.classList.add('level-up-anim');
+      setTimeout(() => document.querySelector('.level-pill')?.classList.remove('level-up-anim'), 2500);
+    }, 300);
+  }
+}
+
+function showAchievementPopup(badge) {
+  const popup = document.getElementById('achievement-popup');
+  popup.innerHTML = `<span style="font-size:1.6rem">${badge.icon}</span><div><div style="font-size:0.75rem;opacity:0.9">Achievement Unlocked</div><div>${badge.name}</div></div>`;
+  popup.classList.remove('hidden');
+  setTimeout(() => popup.classList.add('hidden'), 3500);
+}
+
+function showToast(msg, type = '') {
+  const container = document.getElementById('toast-container') || createToastContainer();
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = type === 'levelup' ? '\uD83C\uDF1F ' + msg : type === 'badge-earned' ? '\uD83C\uDFC5 ' + msg : '\u2705 ' + msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+function createToastContainer() {
+  const div = document.createElement('div');
+  div.id = 'toast-container';
+  div.className = 'toast-container';
+  document.body.appendChild(div);
+  return div;
+}
+
+function generateId() {
+  return 'id_' + Math.random().toString(36).substr(2, 9);
+}
+
+// ========================
+// RENDER FUNCTIONS
+// ========================
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="app-container">
+      ${renderHeader()}
+      ${renderNav()}
+      ${renderView()}
+    </div>
+    ${state.modal ? renderModal() : ''}
+    <div id="toast-container" class="toast-container"></div>
+  `;
+  attachListeners();
+}
+
+function renderHeader() {
+  const lvl = getLevel(state.xp);
+  const rank = getRank(state.xp);
+  const nextRank = RANKS.find(r => r.min > state.xp);
+  const rankProgress = nextRank ? Math.floor((state.xp / nextRank.min) * 100) : 100;
+  return `
+    <div class="app-header">
+      <div class="header-top">
+        <div>
+          <div class="logo">Belle BN</div>
+          <div class="logo-sub">Gamified Inventory & Sales Tracker</div>
+        </div>
+        <button class="theme-toggle" id="themeToggle">${state.theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</button>
+      </div>
+      <div class="xp-section">
+        <div class="xp-top">
+          <div class="level-pill" id="levelPill">\uD83D\uDD25 LVL ${lvl.level}</div>
+          <div class="streak-text">${state.streak >= 2 ? '\uD83D\uDD25 ' + state.streak + '-Day Streak!' : ''}</div>
+        </div>
+        <div class="xp-bar-wrap">
+          <div class="xp-bar-fill" style="width:${lvl.percent}%"></div>
+        </div>
+        <div class="xp-label">${lvl.current} / ${lvl.next} XP to Level ${lvl.level + 1}</div>
+        <div class="rank-display">
+          <div class="rank-icon">${rank.icon}</div>
+          <div class="rank-info">
+            <div class="rank-title">${rank.name}</div>
+            <div class="rank-sub">${nextRank ? nextRank.min - state.xp + ' XP to ' + nextRank.name : 'Max Rank Achieved!'}</div>
+          </div>
+          <div class="rank-progress">${rankProgress}%</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderNav() {
+  const tabs = [
+    { id: 'dashboard', label: '\uD83D\uDCCA Dashboard' },
+    { id: 'inventory', label: '\uD83D\uDCE6 Inventory' },
+    { id: 'sales', label: '\uD83D\uDCB0 Sales' },
+    { id: 'analytics', label: '\uD83D\uDCC8 Analytics' },
+    { id: 'quests', label: '\uD83C\uDFAF Quests' },
+    { id: 'badges', label: '\uD83C\uDFC5 Badges' }
+  ];
+  return `<div class="nav">${tabs.map(t => `<button class="nav-btn ${state.view === t.id ? 'active' : ''}" data-view="${t.id}">${t.label}</button>`).join('')}</div>`;
+}
+
+function renderView() {
+  switch (state.view) {
+    case 'dashboard': return renderDashboard();
+    case 'inventory': return renderInventory();
+    case 'sales': return renderSales();
+    case 'analytics': return renderAnalytics();
+    case 'quests': return renderQuests();
+    case 'badges': return renderBadges();
+    default: return renderDashboard();
+  }
+}
+
+function renderDashboard() {
+  const stats = getStats();
+  const lvl = getLevel(state.xp);
+  const lowStock = state.products.filter(p => p.stock > 0 && p.stock <= p.minStock);
+  const outOfStock = state.products.filter(p => p.stock === 0);
+  const recentSales = [...state.sales].reverse().slice(0, 5);
+  const monthly = stats.monthlySales;
+  const months = Object.keys(monthly).sort();
+  const maxMonth = Math.max(...Object.values(monthly), 1);
+
+  return `
+    <div>
+      <div class="quick-actions">
+        <button class="btn" id="btnAddSale">\u2795 Record Sale</button>
+        <button class="btn btn-outline" id="btnAddProduct">\u2795 Add Product</button>
+        <button class="btn btn-success" id="btnRestock">\uD83D\uDD04 Restock</button>
+      </div>
+
+      <div class="grid-4">
+        <div class="stat-box">
+          <div class="stat-value">${formatCurrency(stats.totalSales)}</div>
+          <div class="stat-label">Total Sales</div>
+          <div class="stat-delta up">\uD83D\uDCC8 All Time</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value">${state.sales.length}</div>
+          <div class="stat-label">Transactions</div>
+          <div class="stat-delta up">${stats.totalQty} items sold</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value">${state.products.filter(p => p.stock > 0).length}</div>
+          <div class="stat-label">In Stock</div>
+          <div class="stat-delta ${outOfStock.length > 0 ? 'down' : 'up'}">${outOfStock.length} out of stock</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value">${state.xp}</div>
+          <div class="stat-label">Total XP</div>
+          <div class="stat-delta up">Level ${lvl.level}</div>
+        </div>
+      </div>
+
+      ${months.length > 0 ? `
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDCC8</span> Monthly Sales Trend</div>
+        <div class="chart-container">
+          ${months.map(m => {
+            const h = (monthly[m] / maxMonth) * 130;
+            const label = new Date(m + '-01').toLocaleDateString('en-GB', { month: 'short' });
+            return `<div class="chart-bar"><div class="chart-bar-inner" style="height:${h}px"></div><div class="chart-value">$${monthly[m]}</div><div class="chart-label">${label}</div></div>`;
+          }).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      ${lowStock.length > 0 ? `
+      <div class="card alert-card">
+        <div class="card-title"><span class="icon">\u26A0\uFE0F</span> Low Stock Alert (${lowStock.length})</div>
+        <div class="insights-list">
+          ${lowStock.map(p => `<div>\u2022 <strong>${p.name}</strong> &mdash; ${p.stock} left (min: ${p.minStock})</div>`).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      ${recentSales.length > 0 ? `
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDD14</span> Recent Sales</div>
+        ${recentSales.map(s => `
+          <div class="recent-sale-item">
+            <div>
+              <div class="recent-sale-customer">${s.customer}</div>
+              <div class="recent-sale-meta">${formatDate(s.date)} &bull; ${s.product}</div>
+            </div>
+            <div class="recent-sale-total">${formatCurrency(s.total)}</div>
+          </div>
+        `).join('')}
+      </div>
+      ` : ''}
+
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDCA1</span> Insights</div>
+        <div class="insights-list">
+          <div>\u2022 <strong>Top Product:</strong> ${Object.entries(stats.productCounts).sort((a,b) => b[1]-a[1])[0]?.[0] || 'N/A'}</div>
+          <div>\u2022 <strong>Top Customer:</strong> ${stats.topCustomer ? stats.topCustomer[0] + ' ($' + stats.topCustomer[1] + ')' : 'N/A'}</div>
+          <div>\u2022 <strong>Unique Customers:</strong> ${stats.uniqueCustomers}</div>
+          <div>\u2022 <strong>Best Day:</strong> $${stats.maxDailySales}</div>
+          <div>\u2022 <strong>Weekend Sales:</strong> ${stats.weekendSales} transactions</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderInventory() {
+  const cats = ['All', ...new Set(state.products.map(p => p.category))];
+  let filtered = state.products;
+  if (state.filterCategory !== 'All') filtered = filtered.filter(p => p.category === state.filterCategory);
+  if (state.searchQuery) {
+    const q = state.searchQuery.toLowerCase();
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
+  }
+  filtered.sort((a, b) => {
+    const aLow = a.stock <= a.minStock && a.stock > 0 ? 0 : a.stock === 0 ? 1 : 2;
+    const bLow = b.stock <= b.minStock && b.stock > 0 ? 0 : b.stock === 0 ? 1 : 2;
+    return aLow - bLow;
+  });
+
+  return `
+    <div>
+      <div class="quick-actions">
+        <button class="btn" id="btnAddProduct">\u2795 Add Product</button>
+        <button class="btn btn-outline" id="btnExportInventory">\uD83D\uDCC4 Export</button>
+      </div>
+      <div class="search-box">
+        <input type="text" class="input" id="searchInventory" placeholder="Search products..." value="${state.searchQuery}">
+      </div>
+      <div class="filter-tabs">
+        ${cats.map(c => `<button class="filter-tab ${state.filterCategory === c ? 'active' : ''}" data-cat="${c}">${c}</button>`).join('')}
+      </div>
+      <div class="card">
+        <div class="product-row header">
+          <div>Product</div><div>SKU</div><div>Stock</div><div>Price</div><div>Category</div><div>Action</div>
+        </div>
+        ${filtered.map(p => {
+          const stockClass = p.stock === 0 ? 'stock-low' : p.stock <= p.minStock ? 'stock-mid' : 'stock-ok';
+          return `
+            <div class="product-row">
+              <div><div class="product-name">${p.name}</div></div>
+              <div class="product-sku">${p.sku}</div>
+              <div class="${stockClass}">${p.stock}</div>
+              <div>${formatCurrency(p.price)}</div>
+              <div class="product-sku">${p.category}</div>
+              <div><button class="btn btn-sm btn-outline" onclick="editProduct('${p.id}')">Edit</button></div>
+            </div>
+          `;
+        }).join('')}
+        ${filtered.length === 0 ? '<div class="empty-state">No products found.</div>' : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderSales() {
+  const stats = getStats();
+  let filtered = [...state.sales].reverse();
+  if (state.searchQuery) {
+    const q = state.searchQuery.toLowerCase();
+    filtered = filtered.filter(s => s.customer.toLowerCase().includes(q) || s.product.toLowerCase().includes(q));
+  }
+  const totalFiltered = filtered.reduce((s, sale) => s + sale.total, 0);
+
+  return `
+    <div>
+      <div class="quick-actions">
+        <button class="btn" id="btnAddSale">\u2795 Record Sale</button>
+        <button class="btn btn-outline" id="btnExportSales">\uD83D\uDCC4 Export</button>
+      </div>
+      <div class="search-box">
+        <input type="text" class="input" id="searchSales" placeholder="Search sales..." value="${state.searchQuery}">
+      </div>
+      <div class="card">
+        <div class="sale-row header">
+          <div>Date</div><div>Product / Customer</div><div>Qty</div><div>Total</div><div>Status</div>
+        </div>
+        ${filtered.map(s => `
+          <div class="sale-row">
+            <div>${formatDate(s.date)}</div>
+            <div><div class="product-name">${s.product}</div><div class="product-sku">${s.customer}</div></div>
+            <div>${s.qty}</div>
+            <div>${formatCurrency(s.total)}</div>
+            <div class="status-${s.status}">${s.status}</div>
+          </div>
+        `).join('')}
+        ${filtered.length === 0 ? '<div class="empty-state">No sales found.</div>' : ''}
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="card-title" style="margin:0"><span class="icon">\uD83D\uDCB0</span> Sales Summary</div>
+          <div style="font-weight:800;font-size:1.1rem;color:var(--accent-violet)">${formatCurrency(totalFiltered)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAnalytics() {
+  const stats = getStats();
+  const productSales = {};
+  state.sales.forEach(s => {
+    productSales[s.product] = (productSales[s.product] || 0) + s.total;
+  });
+  const topProducts = Object.entries(productSales).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const maxProd = Math.max(...topProducts.map(p => p[1]), 1);
+  const customerSales = {};
+  state.sales.forEach(s => {
+    if (s.customer !== 'Walk-in') {
+      customerSales[s.customer] = (customerSales[s.customer] || 0) + s.total;
+    }
+  });
+  const topCustomers = Object.entries(customerSales).sort((a,b) => b[1]-a[1]).slice(0, 5);
+
+  return `
+    <div>
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDCCA</span> Top Products by Revenue</div>
+        <div class="chart-container">
+          ${topProducts.map(([name, val]) => {
+            const h = (val / maxProd) * 130;
+            const short = name.length > 12 ? name.substring(0, 10) + '..' : name;
+            return `<div class="chart-bar"><div class="chart-bar-inner" style="height:${h}px"></div><div class="chart-value">$${val}</div><div class="chart-label">${short}</div></div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDC65</span> Top Customers</div>
+        ${topCustomers.length > 0 ? topCustomers.map(([name, val], i) => `
+          <div class="leaderboard-item">
+            <div class="lb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
+            <div class="lb-info"><div class="lb-name">${name}</div><div class="lb-meta">Loyal Customer</div></div>
+            <div class="lb-xp">${formatCurrency(val)}</div>
+          </div>
+        `).join('') : '<div class="empty-state">No named customers yet.</div>'}
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDCC8</span> Monthly Breakdown</div>
+        <div class="insights-list">
+          ${Object.entries(stats.monthlySales).sort().map(([m, v]) => {
+            const label = new Date(m + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+            return `<div>\u2022 <strong>${label}:</strong> ${formatCurrency(v)} (${state.sales.filter(s => s.date.startsWith(m)).reduce((a,s) => a+s.qty, 0)} items)</div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDCC9</span> Product Performance</div>
+        <div class="insights-list">
+          ${Object.entries(stats.productCounts).sort((a,b) => b[1]-a[1]).map(([name, qty]) => {
+            const rev = productSales[name] || 0;
+            return `<div>\u2022 <strong>${name}:</strong> ${qty} sold &mdash; ${formatCurrency(rev)} revenue</div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderQuests() {
+  const stats = getStats();
+  const today = new Date().toISOString().split('T')[0];
+  const todaySales = state.sales.filter(s => s.date === today).reduce((a,s) => a+s.total, 0);
+  const todayCount = state.sales.filter(s => s.date === today).length;
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekSales = state.sales.filter(s => new Date(s.date) >= weekStart).reduce((a,s) => a+s.total, 0);
+  const monthStart = today.substring(0, 8) + '01';
+  const monthSales = state.sales.filter(s => s.date >= monthStart).reduce((a,s) => a+s.total, 0);
+
+  const questData = [
+    { ...QUESTS[0], current: todayCount, percent: Math.min(100, (todayCount / QUESTS[0].target) * 100) },
+    { ...QUESTS[1], current: state.products.filter(p => p.stock <= p.minStock).length > 0 ? 0 : 1, percent: state.products.filter(p => p.stock <= p.minStock).length > 0 ? 0 : 100 },
+    { ...QUESTS[2], current: weekSales, percent: Math.min(100, (weekSales / QUESTS[2].target) * 100) },
+    { ...QUESTS[3], current: monthSales, percent: Math.min(100, (monthSales / QUESTS[3].target) * 100) }
+  ];
+
+  return `
+    <div>
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83C\uDFAF</span> Active Quests</div>
+        ${questData.map(q => {
+          const completed = q.current >= q.target;
+          return `
+            <div class="quest-item ${completed ? 'completed' : ''}">
+              <div class="quest-icon">${completed ? '\u2705' : '\uD83D\uDD14'}</div>
+              <div class="quest-info">
+                <div class="quest-title">${q.title}</div>
+                <div class="quest-desc">${q.desc}</div>
+                <div class="quest-reward">Reward: +${q.reward} XP</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:0.8rem;font-weight:700;color:var(--text)">${q.current}/${q.target}</div>
+                <div class="quest-progress"><div class="quest-progress-fill" style="width:${q.percent}%"></div></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDCCA</span> Quick Stats</div>
+        <div class="grid-2">
+          <div class="stat-box"><div class="stat-value">${todayCount}</div><div class="stat-label">Sales Today</div></div>
+          <div class="stat-box"><div class="stat-value">${formatCurrency(todaySales)}</div><div class="stat-label">Revenue Today</div></div>
+          <div class="stat-box"><div class="stat-value">${formatCurrency(weekSales)}</div><div class="stat-label">This Week</div></div>
+          <div class="stat-box"><div class="stat-value">${formatCurrency(monthSales)}</div><div class="stat-label">This Month</div></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderBadges() {
+  const stats = getStats();
+  return `
+    <div>
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83C\uDFC5</span> Achievement Badges (${state.earnedBadges.length}/${BADGES.length})</div>
+        <div class="badge-grid">
+          ${BADGES.map(b => {
+            const earned = state.earnedBadges.includes(b.id);
+            const progress = earned ? 100 : 0;
+            return `
+              <div class="badge-item ${earned ? 'earned' : ''}">
+                <span class="badge-icon">${b.icon}</span>
+                <div>
+                  <div class="badge-name">${b.name}</div>
+                  <div class="badge-desc">${b.desc}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">\uD83D\uDC51</span> Rank Progression</div>
+        <div class="insights-list">
+          ${RANKS.map((r, i) => {
+            const achieved = state.xp >= r.min;
+            const nextR = RANKS[i+1];
+            const progress = nextR ? Math.min(100, Math.floor(((state.xp - r.min) / (nextR.min - r.min)) * 100)) : 100;
+            return `<div>\u2022 <strong>${r.icon} ${r.name}</strong> ${achieved ? '\u2705 Achieved' : `(${r.min} XP needed)`} ${nextR && achieved ? `&mdash; ${progress}% to next` : ''}</div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderModal() {
+  const m = state.modal;
+  if (m.type === 'addSale') return renderAddSaleModal();
+  if (m.type === 'addProduct') return renderAddProductModal();
+  if (m.type === 'editProduct') return renderEditProductModal(m.id);
+  if (m.type === 'restock') return renderRestockModal();
+  return '';
+}
+
+function renderAddSaleModal() {
+  const prods = state.products.filter(p => p.stock > 0);
+  return `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <div class="modal-title">\u2795 Record New Sale</div>
+        <div class="form-group">
+          <label class="form-label">Product</label>
+          <select class="input" id="saleProduct">
+            ${prods.map(p => `<option value="${p.id}">${p.name} (Stock: ${p.stock}) - $${p.price}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantity</label>
+          <input type="number" class="input" id="saleQty" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Customer</label>
+          <input type="text" class="input" id="saleCustomer" placeholder="Walk-in or name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="input" id="saleDate" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-outline" id="modalCancel">Cancel</button>
+          <button class="btn" id="modalConfirmSale">Record Sale (+XP)</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAddProductModal() {
+  return `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <div class="modal-title">\u2795 Add New Product</div>
+        <div class="form-group"><label class="form-label">Name</label><input type="text" class="input" id="prodName" placeholder="Product name"></div>
+        <div class="form-group"><label class="form-label">SKU</label><input type="text" class="input" id="prodSKU" placeholder="e.g. 1234"></div>
+        <div class="form-group"><label class="form-label">Category</label><input type="text" class="input" id="prodCat" placeholder="e.g. Cleanser"></div>
+        <div class="form-group"><label class="form-label">Stock</label><input type="number" class="input" id="prodStock" value="0" min="0"></div>
+        <div class="form-group"><label class="form-label">Price ($)</label><input type="number" class="input" id="prodPrice" value="0" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Cost ($)</label><input type="number" class="input" id="prodCost" value="0" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Min Stock Alert</label><input type="number" class="input" id="prodMin" value="3" min="0"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-outline" id="modalCancel">Cancel</button>
+          <button class="btn" id="modalConfirmProduct">Add Product</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEditProductModal(id) {
+  const p = state.products.find(x => x.id === id);
+  if (!p) return '';
+  return `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <div class="modal-title">\u270F\uFE0F Edit Product</div>
+        <div class="form-group"><label class="form-label">Name</label><input type="text" class="input" id="prodName" value="${p.name}"></div>
+        <div class="form-group"><label class="form-label">Stock</label><input type="number" class="input" id="prodStock" value="${p.stock}" min="0"></div>
+        <div class="form-group"><label class="form-label">Price ($)</label><input type="number" class="input" id="prodPrice" value="${p.price}" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Min Stock</label><input type="number" class="input" id="prodMin" value="${p.minStock}" min="0"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-outline" id="modalCancel">Cancel</button>
+          <button class="btn btn-danger btn-sm" id="modalDeleteProduct">Delete</button>
+          <button class="btn" id="modalConfirmEdit">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRestockModal() {
+  const low = state.products.filter(p => p.stock <= p.minStock);
+  return `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <div class="modal-title">\uD83D\uDD04 Quick Restock</div>
+        ${low.length === 0 ? '<p style="color:var(--text-muted)">All items are well stocked!</p>' : low.map(p => `
+          <div class="form-group" style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1"><div style="font-weight:700">${p.name}</div><div style="font-size:0.75rem;color:var(--text-muted)">Current: ${p.stock} / Min: ${p.minStock}</div></div>
+            <input type="number" class="input" style="width:80px" id="restock_${p.id}" value="${Math.max(5, p.minStock * 2 - p.stock)}" min="0">
+          </div>
+        `).join('')}
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-outline" id="modalCancel">Cancel</button>
+          ${low.length > 0 ? '<button class="btn btn-success" id="modalConfirmRestock">Restock All</button>' : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========================
+// EVENT LISTENERS & ACTIONS
+// ========================
+function attachListeners() {
+  document.getElementById('themeToggle')?.addEventListener('click', () => {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', state.theme);
+    render();
+  });
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.view = btn.dataset.view;
+      state.searchQuery = '';
+      render();
+    });
+  });
+
+  document.getElementById('btnAddSale')?.addEventListener('click', () => { state.modal = { type: 'addSale' }; render(); });
+  document.getElementById('btnAddProduct')?.addEventListener('click', () => { state.modal = { type: 'addProduct' }; render(); });
+  document.getElementById('btnRestock')?.addEventListener('click', () => { state.modal = { type: 'restock' }; render(); });
+
+  document.getElementById('searchInventory')?.addEventListener('input', (e) => { state.searchQuery = e.target.value; render(); });
+  document.getElementById('searchSales')?.addEventListener('input', (e) => { state.searchQuery = e.target.value; render(); });
+
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => { state.filterCategory = tab.dataset.cat; render(); });
+  });
+
+  document.getElementById('modalOverlay')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modalOverlay') { state.modal = null; render(); }
+  });
+  document.getElementById('modalCancel')?.addEventListener('click', () => { state.modal = null; render(); });
+
+  document.getElementById('modalConfirmSale')?.addEventListener('click', confirmSale);
+  document.getElementById('modalConfirmProduct')?.addEventListener('click', confirmProduct);
+  document.getElementById('modalConfirmEdit')?.addEventListener('click', confirmEdit);
+  document.getElementById('modalDeleteProduct')?.addEventListener('click', deleteProduct);
+  document.getElementById('modalConfirmRestock')?.addEventListener('click', confirmRestock);
+
+  document.getElementById('btnExportInventory')?.addEventListener('click', exportInventory);
+  document.getElementById('btnExportSales')?.addEventListener('click', exportSales);
+}
+
+function confirmSale() {
+  const prodId = document.getElementById('saleProduct').value;
+  const qty = parseInt(document.getElementById('saleQty').value) || 1;
+  const customer = document.getElementById('saleCustomer').value.trim() || 'Walk-in';
+  const date = document.getElementById('saleDate').value;
+  const product = state.products.find(p => p.id === prodId);
+  if (!product) return;
+  if (qty > product.stock) { showToast('Not enough stock!', 'error'); return; }
+
+  product.stock -= qty;
+  const total = qty * product.price;
+  const sale = { id: generateId(), date, customer, productId: prodId, product: product.name, qty, price: product.price, total, status: 'paid' };
+  state.sales.push(sale);
+
+  const xpGain = Math.floor(total * 2) + 10;
+  addXP(xpGain, 'sale');
+  state.streak = calculateStreak();
+  state.lastSaleDate = date;
+
+  checkBadges();
+  showToast(`Sale recorded! +${xpGain} XP`, 'success');
+  state.modal = null;
+  render();
+}
+
+function confirmProduct() {
+  const name = document.getElementById('prodName').value.trim();
+  const sku = document.getElementById('prodSKU').value.trim();
+  const cat = document.getElementById('prodCat').value.trim() || 'Uncategorized';
+  const stock = parseInt(document.getElementById('prodStock').value) || 0;
+  const price = parseFloat(document.getElementById('prodPrice').value) || 0;
+  const cost = parseFloat(document.getElementById('prodCost').value) || 0;
+  const min = parseInt(document.getElementById('prodMin').value) || 0;
+  if (!name) { showToast('Product name required', 'error'); return; }
+  state.products.push({ id: generateId(), name, sku, category: cat, stock, price, cost, minStock: min });
+  showToast('Product added!', 'success');
+  state.modal = null;
+  render();
+}
+
+function editProduct(id) {
+  state.modal = { type: 'editProduct', id };
+  render();
+}
+
+function confirmEdit() {
+  const id = state.modal.id;
+  const p = state.products.find(x => x.id === id);
+  if (!p) return;
+  p.name = document.getElementById('prodName').value.trim();
+  p.stock = parseInt(document.getElementById('prodStock').value) || 0;
+  p.price = parseFloat(document.getElementById('prodPrice').value) || 0;
+  p.minStock = parseInt(document.getElementById('prodMin').value) || 0;
+  showToast('Product updated!', 'success');
+  state.modal = null;
+  render();
+}
+
+function deleteProduct() {
+  const id = state.modal.id;
+  state.products = state.products.filter(p => p.id !== id);
+  showToast('Product deleted', 'success');
+  state.modal = null;
+  render();
+}
+
+function confirmRestock() {
+  const low = state.products.filter(p => p.stock <= p.minStock);
+  low.forEach(p => {
+    const val = parseInt(document.getElementById('restock_' + p.id)?.value) || 0;
+    if (val > 0) p.stock += val;
+  });
+  addXP(20, 'restock');
+  showToast('Restocked! +20 XP', 'success');
+  state.modal = null;
+  render();
+}
+
+function exportInventory() {
+  const csv = 'Name,SKU,Category,Stock,Price,Cost,Min Stock\n' + state.products.map(p => `${p.name},${p.sku},${p.category},${p.stock},${p.price},${p.cost},${p.minStock}`).join('\n');
+  downloadFile(csv, 'belle_inventory.csv');
+}
+
+function exportSales() {
+  const csv = 'Date,Customer,Product,Qty,Price,Total,Status\n' + state.sales.map(s => `${s.date},${s.customer},${s.product},${s.qty},${s.price},${s.total},${s.status}`).join('\n');
+  downloadFile(csv, 'belle_sales.csv');
+}
+
+function downloadFile(content, filename) {
+  const blob = new Blob([content], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ========================
+// INIT
+// ========================
+document.addEventListener('DOMContentLoaded', () => {
+  initState();
+  render();
+});
+</script>
 </body>
 </html>
