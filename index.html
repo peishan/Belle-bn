@@ -543,6 +543,15 @@
     .chart-container { height: 140px; padding-top: 36px; }
   }
 </style>
+
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Belle BN">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Belle BN">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23f5c2e7'/%3E%3Ctext x='96' y='120' font-size='100' text-anchor='middle' fill='%23fff'%3E%F0%9F%92%9C%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <div id="app"></div>
@@ -1563,6 +1572,17 @@ document.addEventListener('DOMContentLoaded', () => {
   initState();
   render();
 });
+</script>
+
+<script>
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
 </script>
 </body>
 </html>
