@@ -528,6 +528,39 @@
     60% { transform: translateX(-50%) translateY(10px) scale(1.05); }
     100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
   }
+
+  .upload-preview { max-width: 100%; border-radius: 16px; border: 2px solid var(--border); margin-bottom: 16px; }
+  .upload-area {
+    border: 2px dashed var(--accent-lavender);
+    border-radius: 20px;
+    padding: 40px 20px;
+    text-align: center;
+    background: var(--bg-input);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+  .upload-area:hover { border-color: var(--accent-violet); background: rgba(196,160,224,0.08); }
+  .upload-area.has-file { border-style: solid; border-color: var(--success); background: rgba(134,239,172,0.08); }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .upload-text { font-weight: 700; color: var(--text); }
+  .upload-sub { font-size: 0.8rem; color: var(--text-muted); }
+  .bulk-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 60px 70px 1fr 40px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .bulk-row input, .bulk-row select { padding: 8px 10px; font-size: 0.85rem; }
+  .bulk-remove { background: var(--danger); color: #fff; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+  .bulk-remove:hover { opacity: 0.8; }
+  .bulk-header { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .split-view { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) {
+    .split-view { grid-template-columns: 1fr; }
+    .bulk-row { grid-template-columns: 1.2fr 0.8fr 50px 60px 0.8fr 36px; }
+  }
+
   @media (max-width: 600px) {
     .product-row { grid-template-columns: 2fr 1fr 1fr 1fr 80px; font-size: 0.84rem; }
     .product-row.header { display: none; }
@@ -1148,12 +1181,16 @@ function renderSales() {
           <div>Date</div><div>Product / Customer</div><div>Qty</div><div>Total</div><div>Status</div>
         </div>
         ${filtered.map(s => `
-          <div class="sale-row">
+          <div class="sale-row" style="position:relative">
             <div>${formatDate(s.date)}</div>
             <div><div class="product-name">${s.product}</div><div class="product-sku">${s.customer}</div></div>
             <div>${s.qty}</div>
             <div>${formatCurrency(s.total)}</div>
-            <div class="status-${s.status}">${s.status}</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div class="status-${s.status}">${s.status}</div>
+              <button class="btn btn-sm btn-outline" style="padding:4px 8px;font-size:0.7rem" onclick="editSale('${s.id}')">✏️</button>
+              <button class="btn btn-sm btn-danger" style="padding:4px 8px;font-size:0.7rem" onclick="deleteSale('${s.id}')">🗑️</button>
+            </div>
           </div>
         `).join('')}
         ${filtered.length === 0 ? '<div class="empty-state">No sales found.</div>' : ''}
@@ -1325,7 +1362,9 @@ function renderModal() {
   if (m.type === 'addSale') return renderAddSaleModal();
   if (m.type === 'addProduct') return renderAddProductModal();
   if (m.type === 'editProduct') return renderEditProductModal(m.id);
+  if (m.type === 'editSale') return renderEditSaleModal(m.id);
   if (m.type === 'restock') return renderRestockModal();
+  if (m.type === 'uploadReport') return renderUploadReportModal();
   return '';
 }
 
@@ -1428,6 +1467,120 @@ function renderRestockModal() {
 // ========================
 // EVENT LISTENERS & ACTIONS
 // ========================
+
+
+function renderEditSaleModal(id) {
+  const s = state.sales.find(x => x.id === id);
+  if (!s) return '';
+  const prods = state.products;
+  return `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <div class="modal-title">✏️ Edit Sale</div>
+        <div class="form-group">
+          <label class="form-label">Product</label>
+          <select class="input" id="editSaleProduct">
+            ${prods.map(p => `<option value="${p.id}" ${p.id === s.productId ? 'selected' : ''}>${p.name} - $${p.price}</option>`).join('')}
+            <option value="misc" ${s.productId === 'misc' ? 'selected' : ''}>Custom / Bundle</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Product Name (if custom)</label>
+          <input type="text" class="input" id="editSaleProductName" value="${s.product}" placeholder="Product name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantity</label>
+          <input type="number" class="input" id="editSaleQty" value="${s.qty}" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit Price ($)</label>
+          <input type="number" class="input" id="editSalePrice" value="${s.price}" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Customer</label>
+          <input type="text" class="input" id="editSaleCustomer" value="${s.customer}" placeholder="Walk-in or name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="input" id="editSaleDate" value="${s.date}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="input" id="editSaleStatus">
+            <option value="paid" ${s.status === 'paid' ? 'selected' : ''}>Paid</option>
+            <option value="pending" ${s.status === 'pending' ? 'selected' : ''}>Pending</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-outline" id="modalCancel">Cancel</button>
+          <button class="btn btn-danger btn-sm" id="modalDeleteSale">Delete</button>
+          <button class="btn" id="modalConfirmEditSale">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderUploadReportModal() {
+  return `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal" style="max-width:800px">
+        <div class="modal-title">📸 Upload Weekly Sales Report</div>
+        <div class="split-view">
+          <div>
+            <div class="upload-area" id="uploadArea">
+              <div class="upload-icon">📷</div>
+              <div class="upload-text">Tap to upload screenshot</div>
+              <div class="upload-sub">JPG, PNG, WEBP accepted</div>
+              <input type="file" id="reportImageInput" accept="image/*" style="display:none">
+            </div>
+            <div id="imagePreviewContainer" style="display:none">
+              <img id="reportPreview" class="upload-preview" src="" alt="Report preview">
+              <button class="btn btn-sm btn-outline" id="btnChangeImage" style="width:100%">🔄 Change Image</button>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div class="card-title" style="margin:0;font-size:0.95rem">📝 Bulk Entry</div>
+              <button class="btn btn-sm" id="btnAddBulkRow">➕ Add Row</button>
+            </div>
+            <div class="bulk-header" style="display:grid;grid-template-columns:1.4fr 1fr 60px 70px 1fr 40px;gap:8px">
+              <div>Product</div><div>Customer</div><div>Qty</div><div>Price</div><div>Date</div><div></div>
+            </div>
+            <div id="bulkRows">
+              ${renderBulkRow(0)}
+              ${renderBulkRow(1)}
+              ${renderBulkRow(2)}
+            </div>
+            <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+              <button class="btn btn-outline" id="modalCancel">Cancel</button>
+              <button class="btn btn-success" id="modalConfirmBulk">💾 Save All Entries</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderBulkRow(idx) {
+  const prods = state.products.filter(p => p.stock > 0);
+  const today = new Date().toISOString().split('T')[0];
+  return `
+    <div class="bulk-row" data-row="${idx}">
+      <select class="input bulk-product">
+        <option value="">Select...</option>
+        ${prods.map(p => `<option value="${p.id}" data-price="${p.price}">${p.name}</option>`).join('')}
+      </select>
+      <input type="text" class="input bulk-customer" placeholder="Walk-in" value="Walk-in">
+      <input type="number" class="input bulk-qty" value="1" min="1">
+      <input type="number" class="input bulk-price" placeholder="$" step="0.01">
+      <input type="date" class="input bulk-date" value="${today}">
+      <button class="bulk-remove" onclick="removeBulkRow(this)" title="Remove">×</button>
+    </div>
+  `;
+}
+
 function attachListeners() {
   document.getElementById('themeToggle')?.addEventListener('click', () => {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
@@ -1446,6 +1599,7 @@ function attachListeners() {
   document.getElementById('btnAddSale')?.addEventListener('click', () => { state.modal = { type: 'addSale' }; render(); });
   document.getElementById('btnAddProduct')?.addEventListener('click', () => { state.modal = { type: 'addProduct' }; render(); });
   document.getElementById('btnRestock')?.addEventListener('click', () => { state.modal = { type: 'restock' }; render(); });
+  document.getElementById('btnUploadReport')?.addEventListener('click', () => { state.modal = { type: 'uploadReport' }; render(); });
 
   document.getElementById('searchInventory')?.addEventListener('input', (e) => { state.searchQuery = e.target.value; render(); });
   document.getElementById('searchSales')?.addEventListener('input', (e) => { state.searchQuery = e.target.value; render(); });
@@ -1464,6 +1618,35 @@ function attachListeners() {
   document.getElementById('modalConfirmEdit')?.addEventListener('click', confirmEdit);
   document.getElementById('modalDeleteProduct')?.addEventListener('click', deleteProduct);
   document.getElementById('modalConfirmRestock')?.addEventListener('click', confirmRestock);
+  document.getElementById('modalConfirmBulk')?.addEventListener('click', confirmBulk);
+  document.getElementById('btnAddBulkRow')?.addEventListener('click', addBulkRow);
+  document.getElementById('modalConfirmEditSale')?.addEventListener('click', confirmEditSale);
+  document.getElementById('modalDeleteSale')?.addEventListener('click', confirmDeleteSale);
+
+  // Upload report image handlers
+  const uploadArea = document.getElementById('uploadArea');
+  const fileInput = document.getElementById('reportImageInput');
+  const previewContainer = document.getElementById('imagePreviewContainer');
+  const previewImg = document.getElementById('reportPreview');
+
+  uploadArea?.addEventListener('click', () => fileInput?.click());
+  fileInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        previewImg.src = ev.target.result;
+        previewContainer.style.display = 'block';
+        uploadArea.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+  document.getElementById('btnChangeImage')?.addEventListener('click', () => {
+    previewContainer.style.display = 'none';
+    uploadArea.style.display = 'block';
+    fileInput.value = '';
+  });
 
   document.getElementById('btnExportInventory')?.addEventListener('click', exportInventory);
   document.getElementById('btnExportSales')?.addEventListener('click', exportSales);
@@ -1545,6 +1728,182 @@ function confirmRestock() {
   showToast('Restocked! +20 XP', 'success');
   state.modal = null;
   render();
+}
+
+
+
+// ========================
+// EDIT / DELETE SALE FUNCTIONS
+// ========================
+function editSale(id) {
+  state.modal = { type: 'editSale', id };
+  render();
+}
+
+function deleteSale(id) {
+  if (!confirm('Delete this sale record?')) return;
+  const idx = state.sales.findIndex(s => s.id === id);
+  if (idx === -1) return;
+  const sale = state.sales[idx];
+  // Restore stock
+  const prod = state.products.find(p => p.id === sale.productId);
+  if (prod) prod.stock += sale.qty;
+  // Remove sale
+  state.sales.splice(idx, 1);
+  // Recalculate
+  state.streak = calculateStreak();
+  state.xp = Math.max(0, state.xp - Math.floor(sale.total * 2) - 10);
+  showToast('Sale deleted. Stock restored.', 'success');
+  render();
+}
+
+function confirmEditSale() {
+  const id = state.modal.id;
+  const sale = state.sales.find(s => s.id === id);
+  if (!sale) return;
+
+  const prodId = document.getElementById('editSaleProduct').value;
+  const productName = document.getElementById('editSaleProductName').value.trim();
+  const qty = parseInt(document.getElementById('editSaleQty').value) || 1;
+  const price = parseFloat(document.getElementById('editSalePrice').value) || 0;
+  const customer = document.getElementById('editSaleCustomer').value.trim() || 'Walk-in';
+  const date = document.getElementById('editSaleDate').value;
+  const status = document.getElementById('editSaleStatus').value;
+
+  // Restore old stock first
+  const oldProd = state.products.find(p => p.id === sale.productId);
+  if (oldProd) oldProd.stock += sale.qty;
+
+  // Deduct new stock
+  const newProd = state.products.find(p => p.id === prodId);
+  if (newProd && prodId !== 'misc') {
+    if (qty > newProd.stock) {
+      // Rollback old stock
+      if (oldProd) oldProd.stock -= sale.qty;
+      showToast('Not enough stock for ' + newProd.name + '!', 'error');
+      return;
+    }
+    newProd.stock -= qty;
+  }
+
+  // Update sale
+  const oldTotal = sale.total;
+  sale.productId = prodId;
+  sale.product = productName || (newProd ? newProd.name : 'Custom');
+  sale.qty = qty;
+  sale.price = price;
+  sale.total = qty * price;
+  sale.customer = customer;
+  sale.date = date;
+  sale.status = status;
+
+  // Adjust XP
+  const xpDiff = Math.floor(sale.total * 2) - Math.floor(oldTotal * 2);
+  state.xp = Math.max(0, state.xp + xpDiff);
+  state.streak = calculateStreak();
+
+  showToast('Sale updated! Stock adjusted.', 'success');
+  state.modal = null;
+  render();
+}
+
+function confirmDeleteSale() {
+  const id = state.modal.id;
+  state.modal = null;
+  deleteSale(id);
+}
+
+// ========================
+// BULK UPLOAD / REPORT FUNCTIONS
+// ========================
+function addBulkRow() {
+  const container = document.getElementById('bulkRows');
+  const idx = container.children.length;
+  const div = document.createElement('div');
+  div.innerHTML = renderBulkRow(idx);
+  // Extract just the inner HTML since renderBulkRow returns a string
+  container.insertAdjacentHTML('beforeend', renderBulkRow(idx));
+  attachBulkRowListeners();
+}
+
+function removeBulkRow(btn) {
+  const row = btn.closest('.bulk-row');
+  const container = document.getElementById('bulkRows');
+  if (container.children.length > 1) {
+    row.remove();
+  } else {
+    // Clear inputs instead of removing last row
+    row.querySelectorAll('input, select').forEach(el => {
+      if (el.tagName === 'SELECT') el.selectedIndex = 0;
+      else if (el.type === 'number') el.value = el.classList.contains('bulk-qty') ? '1' : '';
+      else if (el.type === 'date') el.value = new Date().toISOString().split('T')[0];
+      else el.value = '';
+    });
+  }
+}
+
+function attachBulkRowListeners() {
+  document.querySelectorAll('.bulk-product').forEach(sel => {
+    sel.onchange = function() {
+      const opt = this.options[this.selectedIndex];
+      const price = opt.dataset.price;
+      if (price) {
+        const row = this.closest('.bulk-row');
+        row.querySelector('.bulk-price').value = price;
+      }
+    };
+  });
+}
+
+function confirmBulk() {
+  const rows = document.querySelectorAll('.bulk-row');
+  let added = 0;
+  let totalXP = 0;
+
+  rows.forEach(row => {
+    const prodId = row.querySelector('.bulk-product').value;
+    const customer = row.querySelector('.bulk-customer').value.trim() || 'Walk-in';
+    const qty = parseInt(row.querySelector('.bulk-qty').value) || 0;
+    const price = parseFloat(row.querySelector('.bulk-price').value) || 0;
+    const date = row.querySelector('.bulk-date').value;
+
+    if (!prodId || qty < 1 || price <= 0 || !date) return;
+
+    const product = state.products.find(p => p.id === prodId);
+    if (!product) return;
+    if (qty > product.stock) {
+      showToast(`Not enough stock for ${product.name}!`, 'error');
+      return;
+    }
+
+    product.stock -= qty;
+    const total = qty * price;
+    const sale = {
+      id: generateId(),
+      date,
+      customer,
+      productId: prodId,
+      product: product.name,
+      qty,
+      price,
+      total,
+      status: 'paid'
+    };
+    state.sales.push(sale);
+    totalXP += Math.floor(total * 2) + 10;
+    added++;
+  });
+
+  if (added > 0) {
+    addXP(totalXP, 'bulk');
+    state.streak = calculateStreak();
+    checkBadges();
+    showToast(`${added} sales recorded! +${totalXP} XP`, 'success');
+    state.modal = null;
+    render();
+  } else {
+    showToast('No valid entries to save. Fill in Product, Qty, Price and Date.', 'error');
+  }
 }
 
 function exportInventory() {
