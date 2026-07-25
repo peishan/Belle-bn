@@ -1,22 +1,25 @@
 {
-  "name": "Belle BN — Inventory Tracker",
+  "name": "Belle BN - Gamified Sales Tracker",
   "short_name": "Belle BN",
-  "description": "Gamified stock tracker and sales updater for skincare & eczema care products",
+  "description": "Gamified Inventory & Sales Tracker for Skincare & Eczema Care",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#F0E6FF",
-  "theme_color": "#DDA0DD",
-  "orientation": "portrait",
+  "background_color": "#fff0f5",
+  "theme_color": "#f5c2e7",
+  "orientation": "portrait-primary",
+  "scope": ".",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='linear-gradient(135deg, %23FFB6C1, %23DDA0DD)'/%3E%3Ctext x='96' y='120' font-size='100' text-anchor='middle'%3E🌸%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23f5c2e7'/%3E%3Ctext x='96' y='120' font-size='100' text-anchor='middle' fill='%23fff'%3E%F0%9F%92%9C%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='linear-gradient(135deg, %23FFB6C1, %23DDA0DD)'/%3E%3Ctext x='256' y='320' font-size='280' text-anchor='middle'%3E🌸%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23f5c2e7'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle' fill='%23fff'%3E%F0%9F%92%9C%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
